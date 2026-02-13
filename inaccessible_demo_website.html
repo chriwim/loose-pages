@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NovaTech — Future of Productivity</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #6c63ff;
+      --bg-light: #f5f6fa;
+      --text-light: #a0a3bd; /* Low contrast intentionally */
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background: var(--bg-light);
+      color: var(--text-light);
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 60px;
+      background: white;
+      position: fixed;
+      width: 100%;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    nav a {
+      margin-left: 30px;
+      text-decoration: none;
+      color: var(--text-light);
+      font-weight: 600;
+    }
+
+    .hero {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      background: linear-gradient(135deg, #6c63ff, #3f3d56);
+      color: #ffffff;
+    }
+
+    .hero h1 {
+      font-size: 64px;
+      font-weight: 800;
+    }
+
+    .hero p {
+      margin-top: 20px;
+      font-size: 18px;
+      max-width: 600px;
+    }
+
+    .btn {
+      margin-top: 30px;
+      padding: 15px 40px;
+      background: white;
+      color: #6c63ff;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: 0.3s ease;
+    }
+
+    .btn:hover {
+      background: #f0f0ff;
+    }
+
+    .features {
+      padding: 120px 60px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 40px;
+    }
+
+    .card {
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+      transition: transform 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-10px);
+    }
+
+    .card img {
+      width: 60px;
+      margin-bottom: 20px;
+    }
+
+    .contact {
+      padding: 100px 60px;
+      background: #ffffff;
+      text-align: center;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 10px;
+      border: 1px solid #eee;
+      outline: none;
+    }
+
+    footer {
+      padding: 40px;
+      text-align: center;
+      background: #3f3d56;
+      color: #999; /* Low contrast intentionally */
+    }
+
+    /* Keyboard trap example */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.6);
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      width: 400px;
+    }
+
+  </style>
+</head>
+<body>
+
+<header>
+  <div><strong>NovaTech</strong></div>
+  <nav>
+    <a href="#features">Features</a>
+    <a href="#contact">Contact</a>
+    <a onclick="openModal()">Login</a>
+  </nav>
+</header>
+
+<section class="hero">
+  <h1>Work Smarter. Faster.</h1>
+  <p>The ultimate productivity suite powered by AI automation and real-time collaboration.</p>
+  <button class="btn" onclick="openModal()">Get Started</button>
+  
+  <!-- Autoplaying video without controls -->
+  <video autoplay loop muted style="margin-top:40px; width:60%; border-radius:20px;">
+    <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+  </video>
+</section>
+
+<section id="features" class="features">
+  <div class="card">
+    <img src="https://cdn-icons-png.flaticon.com/512/1828/1828911.png">
+    <h3>Automation</h3>
+    <p>Streamline your workflow with AI-powered automation tools.</p>
+  </div>
+  <div class="card">
+    <img src="https://cdn-icons-png.flaticon.com/512/1828/1828970.png">
+    <h3>Collaboration</h3>
+    <p>Real-time team collaboration with seamless cloud sync.</p>
+  </div>
+  <div class="card">
+    <img src="https://cdn-icons-png.flaticon.com/512/1828/1828843.png">
+    <h3>Analytics</h3>
+    <p>Advanced insights to help you make data-driven decisions.</p>
+  </div>
+</section>
+
+<section id="contact" class="contact">
+  <h2>Contact Us</h2>
+  <form>
+    <!-- Missing labels intentionally -->
+    <input type="text" placeholder="Your Name">
+    <input type="email" placeholder="Your Email">
+    <textarea rows="5" placeholder="Your Message"></textarea>
+    <button class="btn">Send Message</button>
+  </form>
+</section>
+
+<div class="modal" id="modal" tabindex="0">
+  <div class="modal-content">
+    <h2>Login</h2>
+    <input type="text" placeholder="Email">
+    <input type="password" placeholder="Password">
+    <button class="btn">Login</button>
+  </div>
+</div>
+
+<footer>
+  © 2026 NovaTech. All rights reserved.
+</footer>
+
+<script>
+  function openModal() {
+    document.getElementById('modal').style.display = 'flex';
+    document.getElementById('modal').focus();
+  }
+
+  // No way to close modal via keyboard intentionally
+</script>
+
+</body>
+</html>
