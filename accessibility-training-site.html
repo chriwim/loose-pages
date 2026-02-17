@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<!-- ACCESSIBILITY TRAINING SITE — intentionally violates common WCAG 2.1 guidelines -->
+<!-- Each violation is documented in a floating trainer panel for evaluation use -->
+<html>
+<head>
+  <!-- VIOLATION #1: Missing lang attribute on <html> element (WCAG 3.1.1) -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Luminary — Creative Agency</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
+  <style>
+    /* ─── Design Tokens ─── */
+    :root {
+      --cream: #F5F0E8;
+      --ink:   #1A1410;
+      --gold:  #C9953A;
+      --rust:  #B84A2A;
+      --sage:  #4A6741;
+      --mist:  #E8EDE6;
+      --shadow: rgba(26,20,16,0.12);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--cream);
+      color: var(--ink);
+      overflow-x: hidden;
+    }
+
+    /* ─── Noise Texture Overlay ─── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none; z-index: 9998; opacity: 0.4;
+    }
+
+    /* ─── Navigation ─── */
+    nav {
+      position: fixed; top: 0; width: 100%; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.4rem 3rem;
+      background: rgba(245,240,232,0.88);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(201,149,58,0.2);
+    }
+
+    .logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.5rem; font-weight: 900;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+      /* VIOLATION #2: Decorative logo text has no accessible name on the link */
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex; gap: 2.5rem; list-style: none;
+    }
+
+    /* VIOLATION #3: Focus outline removed globally (WCAG 2.4.7) */
+    * { outline: none; }
+
+    .nav-links a {
+      font-size: 0.85rem; font-weight: 500;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--ink); text-decoration: none;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--gold); }
+
+    .nav-cta {
+      background: var(--ink);
+      color: var(--cream) !important;
+      padding: 0.6rem 1.4rem;
+      border-radius: 2px;
+    }
+
+    /* ─── Hero ─── */
+    .hero {
+      min-height: 100vh;
+      display: grid; place-items: center;
+      padding: 8rem 3rem 4rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-bg-circle {
+      position: absolute;
+      width: 600px; height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(201,149,58,0.12) 0%, transparent 70%);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -55%);
+      animation: pulse 6s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: translate(-50%, -55%) scale(1); opacity: 1; }
+      50% { transform: translate(-50%, -55%) scale(1.08); opacity: 0.7; }
+    }
+
+    .hero-content { text-align: center; position: relative; z-index: 1; max-width: 820px; }
+
+    .hero-eyebrow {
+      font-size: 0.75rem; letter-spacing: 0.2em;
+      text-transform: uppercase; font-weight: 500;
+      /* VIOLATION #4: Very low contrast text — approximately 2.1:1 (WCAG 1.4.3 requires 4.5:1) */
+      color: #C8B99A; /* light on cream background */
+      margin-bottom: 1.2rem;
+    }
+
+    .hero h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(3rem, 7vw, 6.5rem);
+      font-weight: 900; line-height: 1.02;
+      letter-spacing: -0.03em;
+      margin-bottom: 1.8rem;
+    }
+
+    .hero h1 em {
+      font-style: italic;
+      color: var(--gold);
+    }
+
+    .hero-desc {
+      font-size: 1.1rem; font-weight: 300; line-height: 1.75;
+      max-width: 520px; margin: 0 auto 2.8rem;
+      /* VIOLATION #5: Insufficient contrast for body text — approx 3.2:1 (needs 4.5:1) */
+      color: #9A8F83;
+    }
+
+    .hero-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+    .btn-primary {
+      background: var(--ink);
+      color: var(--cream);
+      padding: 1rem 2.2rem;
+      font-size: 0.85rem; font-weight: 500;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      border: none; cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      /* VIOLATION #6: Interactive element is a <div> not a <button> — no keyboard role */
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px var(--shadow); }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--ink);
+      padding: 1rem 2.2rem;
+      font-size: 0.85rem; font-weight: 500;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      border: 1.5px solid var(--ink);
+      cursor: pointer; transition: background 0.2s;
+    }
+    .btn-secondary:hover { background: var(--mist); }
+
+    /* ─── Marquee Strip ─── */
+    .marquee-strip {
+      background: var(--ink);
+      padding: 1rem 0;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    .marquee-inner {
+      display: inline-flex; gap: 3rem;
+      animation: marquee 22s linear infinite;
+    }
+    @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    .marquee-item {
+      font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase;
+      color: rgba(245,240,232,0.5);
+      display: flex; align-items: center; gap: 1rem;
+    }
+    .marquee-item::after { content: '✦'; color: var(--gold); }
+
+    /* ─── Work / Portfolio ─── */
+    .section { padding: 7rem 3rem; }
+    .section-label {
+      font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--gold); font-weight: 500; margin-bottom: 1rem;
+    }
+    .section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2rem, 4vw, 3.5rem);
+      font-weight: 700; line-height: 1.1;
+      margin-bottom: 3.5rem;
+    }
+
+    .work-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 1.5rem;
+    }
+
+    .work-card {
+      border-radius: 4px; overflow: hidden;
+      position: relative; cursor: pointer;
+      background: var(--ink);
+    }
+    .work-card:nth-child(1) { grid-column: span 7; }
+    .work-card:nth-child(2) { grid-column: span 5; }
+    .work-card:nth-child(3) { grid-column: span 4; }
+    .work-card:nth-child(4) { grid-column: span 8; }
+
+    .work-card-img {
+      width: 100%; aspect-ratio: 4/3; object-fit: cover;
+      display: block;
+      transition: transform 0.6s cubic-bezier(0.25,0.46,0.45,0.94);
+      filter: saturate(0.85);
+    }
+    /* VIOLATION #7: Images have no alt attributes (WCAG 1.1.1) */
+
+    .work-card:hover .work-card-img { transform: scale(1.04); }
+
+    .work-card-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(to top, rgba(26,20,16,0.85) 0%, transparent 50%);
+      display: flex; flex-direction: column; justify-content: flex-end;
+      padding: 1.8rem;
+    }
+    .work-card-cat {
+      font-size: 0.68rem; letter-spacing: 0.15em; text-transform: uppercase;
+      color: var(--gold); margin-bottom: 0.4rem;
+    }
+    .work-card-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.3rem; color: var(--cream); font-weight: 700;
+    }
+
+    /* ─── Services ─── */
+    .services-section {
+      background: var(--ink);
+      padding: 7rem 3rem;
+      position: relative; overflow: hidden;
+    }
+    .services-section::before {
+      content: '';
+      position: absolute; right: -100px; top: -100px;
+      width: 400px; height: 400px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(201,149,58,0.15) 0%, transparent 65%);
+    }
+    .services-section .section-title { color: var(--cream); }
+
+    .services-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem;
+      position: relative;
+    }
+
+    .service-card {
+      border: 1px solid rgba(245,240,232,0.1);
+      padding: 2.5rem 2rem;
+      transition: border-color 0.3s, background 0.3s;
+      cursor: pointer;
+    }
+    .service-card:hover {
+      border-color: rgba(201,149,58,0.5);
+      background: rgba(201,149,58,0.04);
+    }
+
+    .service-number {
+      font-family: 'Playfair Display', serif;
+      font-size: 3rem; font-weight: 900;
+      color: rgba(201,149,58,0.25);
+      line-height: 1; margin-bottom: 1.2rem;
+    }
+    .service-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.3rem; color: var(--cream);
+      margin-bottom: 0.8rem;
+    }
+    .service-desc {
+      font-size: 0.9rem; line-height: 1.7;
+      /* VIOLATION #8: Text on dark bg — approx 3.4:1 contrast (insufficient) */
+      color: rgba(245,240,232,0.4);
+    }
+
+    /* ─── Stats ─── */
+    .stats-section {
+      padding: 6rem 3rem;
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 2rem; border-top: 1px solid rgba(26,20,16,0.08);
+      border-bottom: 1px solid rgba(26,20,16,0.08);
+    }
+    .stat-item { text-align: center; }
+    .stat-number {
+      font-family: 'Playfair Display', serif;
+      font-size: 3.5rem; font-weight: 900;
+      color: var(--gold); line-height: 1;
+      margin-bottom: 0.5rem;
+    }
+    .stat-label {
+      font-size: 0.8rem; letter-spacing: 0.12em;
+      text-transform: uppercase; font-weight: 500;
+      color: rgba(26,20,16,0.45);
+    }
+
+    /* ─── Team ─── */
+    .team-section { padding: 7rem 3rem; background: var(--mist); }
+    .team-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2rem; }
+    .team-card {
+      text-align: center;
+      /* VIOLATION #9: Entire card is a clickable div with no role or keyboard support */
+      cursor: pointer;
+    }
+
+    .team-img {
+      width: 100%; aspect-ratio: 1;
+      border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+      object-fit: cover; margin-bottom: 1.2rem;
+      /* VIOLATION #7 repeated: no alt text on img */
+      filter: grayscale(15%);
+      transition: border-radius 0.4s, filter 0.4s;
+    }
+    .team-card:hover .team-img { border-radius: 4px; filter: grayscale(0%); }
+
+    .team-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem; font-weight: 700; margin-bottom: 0.3rem;
+    }
+    .team-role {
+      font-size: 0.8rem; color: var(--gold);
+      letter-spacing: 0.08em; text-transform: uppercase;
+    }
+
+    /* ─── Testimonial ─── */
+    .testimonial-section {
+      padding: 7rem 3rem;
+      text-align: center;
+      position: relative;
+    }
+    .testimonial-quote {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.5rem, 3vw, 2.5rem);
+      font-weight: 400; font-style: italic;
+      line-height: 1.5; max-width: 760px;
+      margin: 0 auto 2rem;
+    }
+    .testimonial-author { font-weight: 500; font-size: 0.9rem; color: var(--gold); }
+
+    /* ─── Contact Form ─── */
+    .contact-section {
+      padding: 7rem 3rem;
+      background: var(--ink);
+    }
+    .contact-inner {
+      max-width: 640px; margin: 0 auto;
+    }
+    .contact-section .section-title { color: var(--cream); }
+
+    /* VIOLATION #10: Form inputs have no associated <label> elements (WCAG 1.3.1 / 3.3.2) */
+    .form-group { margin-bottom: 1.5rem; }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      background: rgba(245,240,232,0.05);
+      border: 1px solid rgba(245,240,232,0.15);
+      color: var(--cream);
+      padding: 1rem 1.2rem;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      transition: border-color 0.2s;
+    }
+    .form-group input::placeholder,
+    .form-group textarea::placeholder { color: rgba(245,240,232,0.3); }
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus { border-color: var(--gold); }
+
+    .form-group textarea { height: 140px; resize: vertical; }
+
+    .form-group select {
+      appearance: none;
+      /* VIOLATION #11: Select has no visible label, uses placeholder-like option */
+      color: rgba(245,240,232,0.3);
+    }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+    .form-submit {
+      width: 100%;
+      background: var(--gold);
+      color: var(--ink);
+      border: none; cursor: pointer;
+      padding: 1.1rem;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.85rem; font-weight: 500;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      transition: background 0.2s;
+    }
+    .form-submit:hover { background: #d4a247; }
+
+    /* VIOLATION #12: Error messages exist but have no live region or role="alert" */
+    .form-error {
+      color: #e05a3a;
+      font-size: 0.78rem; margin-top: 0.4rem;
+      display: none;
+    }
+
+    /* ─── Footer ─── */
+    footer {
+      padding: 3rem;
+      border-top: 1px solid rgba(245,240,232,0.08);
+      background: var(--ink);
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 1rem;
+    }
+    .footer-logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.2rem; font-weight: 900; color: var(--cream);
+    }
+    .footer-links { display: flex; gap: 2rem; list-style: none; }
+    .footer-links a {
+      font-size: 0.8rem; letter-spacing: 0.08em;
+      color: rgba(245,240,232,0.45); text-decoration: none;
+      /* VIOLATION #13: Very low contrast footer links — approx 2.8:1 */
+    }
+    .footer-copy {
+      font-size: 0.75rem;
+      color: rgba(245,240,232,0.25); /* WCAG fail */
+    }
+
+
+    /* ─── Scroll reveal ─── */
+    .reveal {
+      opacity: 0; transform: translateY(28px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    .reveal.visible { opacity: 1; transform: none; }
+
+    /* ─── WCAG Fix overrides (do NOT apply, just document) ─── */
+    /* Colorful gradient images placeholder */
+    .img-placeholder {
+      display: block; width: 100%; aspect-ratio: 4/3;
+      object-fit: cover;
+    }
+  </style>
+</head>
+
+<body>
+
+
+  <!-- ─── NAVIGATION ─── -->
+  <!-- VIOLATION #2: Logo link has no aria-label or text content -->
+  <nav>
+    <a href="#" class="logo">Luminary</a>
+    <ul class="nav-links">
+      <li><a href="#work">Work</a></li>
+      <li><a href="#services">Services</a></li>
+      <li><a href="#team">Team</a></li>
+      <li><a href="#contact">Contact</a></li>
+      <li><a href="#contact" class="nav-cta">Start a Project</a></li>
+    </ul>
+  </nav>
+
+  <!-- ─── HERO ─── -->
+  <section class="hero">
+    <div class="hero-bg-circle"></div>
+    <div class="hero-content reveal">
+      <!-- VIOLATION #4: Low contrast eyebrow text -->
+      <p class="hero-eyebrow">Crafting Bold Narratives Since 2014</p>
+
+      <h1>We Make Brands<br><em>Unforgettable</em></h1>
+
+      <!-- VIOLATION #5: Insufficient body text contrast -->
+      <p class="hero-desc">
+        Luminary is a full-service creative studio helping ambitious companies find their voice, shape their identity, and leave a lasting mark on the world.
+      </p>
+
+      <div class="hero-actions">
+        <!-- VIOLATION #6: Interactive button is a <div>, not a <button> -->
+        <div class="btn-primary" onclick="document.getElementById('work').scrollIntoView({behavior:'smooth'})">View Our Work</div>
+        <button class="btn-secondary" onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})">Get In Touch</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── MARQUEE ─── -->
+  <div class="marquee-strip" aria-hidden="true">
+    <div class="marquee-inner">
+      <span class="marquee-item">Brand Identity</span>
+      <span class="marquee-item">Web Design</span>
+      <span class="marquee-item">Motion Graphics</span>
+      <span class="marquee-item">Campaign Strategy</span>
+      <span class="marquee-item">UX Research</span>
+      <span class="marquee-item">Editorial Design</span>
+      <span class="marquee-item">Brand Identity</span>
+      <span class="marquee-item">Web Design</span>
+      <span class="marquee-item">Motion Graphics</span>
+      <span class="marquee-item">Campaign Strategy</span>
+      <span class="marquee-item">UX Research</span>
+      <span class="marquee-item">Editorial Design</span>
+    </div>
+  </div>
+
+  <!-- ─── WORK ─── -->
+  <section id="work" class="section">
+    <p class="section-label reveal">Selected Projects</p>
+    <h2 class="section-title reveal">Work We're Proud Of</h2>
+
+    <div class="work-grid">
+      <!-- VIOLATION #7: Images have no alt attribute -->
+      <div class="work-card reveal">
+        <img class="work-card-img" src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=900&q=80">
+        <div class="work-card-overlay">
+          <p class="work-card-cat">Brand Identity</p>
+          <p class="work-card-title">Arbor — Sustainable Living Co.</p>
+        </div>
+      </div>
+
+      <div class="work-card reveal">
+        <img class="work-card-img" src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=700&q=80">
+        <div class="work-card-overlay">
+          <p class="work-card-cat">Web Design</p>
+          <p class="work-card-title">Vesper Financial</p>
+        </div>
+      </div>
+
+      <div class="work-card reveal">
+        <img class="work-card-img" src="https://images.unsplash.com/photo-1561070791-2526d30994b5?w=700&q=80">
+        <div class="work-card-overlay">
+          <p class="work-card-cat">Packaging</p>
+          <p class="work-card-title">Cleo Beauty</p>
+        </div>
+      </div>
+
+      <div class="work-card reveal">
+        <img class="work-card-img" src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=900&q=80">
+        <div class="work-card-overlay">
+          <p class="work-card-cat">Campaign</p>
+          <p class="work-card-title">Meridian Airlines — New Routes</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── STATS ─── -->
+  <div class="stats-section">
+    <div class="stat-item reveal">
+      <div class="stat-number">240+</div>
+      <div class="stat-label">Projects Delivered</div>
+    </div>
+    <div class="stat-item reveal">
+      <div class="stat-number">18</div>
+      <div class="stat-label">Industry Awards</div>
+    </div>
+    <div class="stat-item reveal">
+      <div class="stat-number">96%</div>
+      <div class="stat-label">Client Retention</div>
+    </div>
+    <div class="stat-item reveal">
+      <div class="stat-number">12</div>
+      <div class="stat-label">Years of Practice</div>
+    </div>
+  </div>
+
+  <!-- ─── SERVICES ─── -->
+  <section id="services" class="services-section">
+    <p class="section-label" style="color:var(--gold)">What We Do</p>
+    <h2 class="section-title reveal">Our Capabilities</h2>
+
+    <div class="services-grid">
+      <div class="service-card reveal">
+        <div class="service-number">01</div>
+        <h3 class="service-name">Brand Strategy</h3>
+        <!-- VIOLATION #8: Low contrast service description text -->
+        <p class="service-desc">We uncover your brand's core truth and translate it into a strategy that resonates across every touchpoint.</p>
+      </div>
+      <div class="service-card reveal">
+        <div class="service-number">02</div>
+        <h3 class="service-name">Visual Identity</h3>
+        <p class="service-desc">Logos, color systems, typography, and imagery that tell your story at a glance and hold together across any medium.</p>
+      </div>
+      <div class="service-card reveal">
+        <div class="service-number">03</div>
+        <h3 class="service-name">Digital Experience</h3>
+        <p class="service-desc">Websites and apps that feel intuitive, move beautifully, and convert visitors into loyal customers.</p>
+      </div>
+      <div class="service-card reveal">
+        <div class="service-number">04</div>
+        <h3 class="service-name">Motion & Film</h3>
+        <p class="service-desc">From brand films to micro-animations, we add dimension and life to stories that need to move people.</p>
+      </div>
+      <div class="service-card reveal">
+        <div class="service-number">05</div>
+        <h3 class="service-name">Campaign Design</h3>
+        <p class="service-desc">Integrated campaigns built to land in the right places, with the right message, at exactly the right moment.</p>
+      </div>
+      <div class="service-card reveal">
+        <div class="service-number">06</div>
+        <h3 class="service-name">Print & Editorial</h3>
+        <p class="service-desc">Annual reports, books, magazines, and packaging — crafted with the care that print demands and deserves.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── TEAM ─── -->
+  <section id="team" class="team-section">
+    <p class="section-label reveal">The People</p>
+    <h2 class="section-title reveal">Meet the Studio</h2>
+
+    <div class="team-grid">
+      <!-- VIOLATION #7 + #9: No alt text, clickable div without keyboard support -->
+      <div class="team-card reveal" onclick="alert('Team member profile')">
+        <img class="team-img" src="https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&q=80">
+        <p class="team-name">Ava Chen</p>
+        <p class="team-role">Creative Director</p>
+      </div>
+      <div class="team-card reveal" onclick="alert('Team member profile')">
+        <img class="team-img" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80">
+        <p class="team-name">Marcus Webb</p>
+        <p class="team-role">Head of Strategy</p>
+      </div>
+      <div class="team-card reveal" onclick="alert('Team member profile')">
+        <img class="team-img" src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&q=80">
+        <p class="team-name">Priya Nair</p>
+        <p class="team-role">Lead Designer</p>
+      </div>
+      <div class="team-card reveal" onclick="alert('Team member profile')">
+        <img class="team-img" src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&q=80">
+        <p class="team-name">Jules Renard</p>
+        <p class="team-role">Motion Director</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── TESTIMONIAL ─── -->
+  <section class="testimonial-section">
+    <p class="testimonial-quote reveal">
+      "Luminary didn't just redesign our brand — they helped us understand who we were, and gave us the confidence to show the world."
+    </p>
+    <p class="testimonial-author">— Sophia Adler, CEO at Arbor</p>
+  </section>
+
+  <!-- ─── CONTACT ─── -->
+  <section id="contact" class="contact-section">
+    <div class="contact-inner">
+      <p class="section-label">Let's Talk</p>
+      <h2 class="section-title reveal">Start a Project</h2>
+
+      <!-- VIOLATION #10: No <label> elements associated with inputs -->
+      <!-- VIOLATION #11: Select has no label -->
+      <form onsubmit="return handleSubmit(event)">
+        <div class="form-row">
+          <div class="form-group">
+            <!-- No <label> for this input -->
+            <input type="text" id="fname" placeholder="First Name" required>
+            <div class="form-error" id="fname-error">Please enter your first name.</div>
+          </div>
+          <div class="form-group">
+            <input type="text" id="lname" placeholder="Last Name" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <input type="email" id="email" placeholder="Email Address" required>
+          <div class="form-error" id="email-error">Please enter a valid email address.</div>
+        </div>
+        <div class="form-group">
+          <!-- VIOLATION #11: No label for select -->
+          <select id="service">
+            <option value="" style="color:#333">Select a Service</option>
+            <option value="brand">Brand Strategy</option>
+            <option value="identity">Visual Identity</option>
+            <option value="digital">Digital Experience</option>
+            <option value="motion">Motion & Film</option>
+            <option value="campaign">Campaign Design</option>
+            <option value="print">Print & Editorial</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <textarea id="message" placeholder="Tell us about your project…"></textarea>
+        </div>
+        <!-- VIOLATION #12: No aria-live for form feedback -->
+        <div id="form-success" style="display:none; color:#a6e3a1; margin-bottom:1rem; font-size:0.85rem;">
+          ✓ Your message has been sent. We'll be in touch soon.
+        </div>
+        <button type="submit" class="form-submit">Send Message →</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ─── FOOTER ─── -->
+  <footer>
+    <div class="footer-logo">Luminary</div>
+    <!-- VIOLATION #13: Very low contrast footer links -->
+    <ul class="footer-links">
+      <li><a href="#">Privacy</a></li>
+      <li><a href="#">Terms</a></li>
+      <li><a href="#">Careers</a></li>
+      <li><a href="#">Press</a></li>
+    </ul>
+    <p class="footer-copy">© 2026 Luminary Studio. All rights reserved.</p>
+  </footer>
+
+  <script>
+    // ─── Scroll Reveal ───
+    const reveals = document.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) { e.target.classList.add('visible'); }
+      });
+    }, { threshold: 0.12 });
+    reveals.forEach(el => observer.observe(el));
+
+    // ─── Form handler (VIOLATION #12: no live region announcements) ───
+    function handleSubmit(e) {
+      e.preventDefault();
+      const fname = document.getElementById('fname').value.trim();
+      const email = document.getElementById('email').value.trim();
+
+      // Show errors by toggling display — no role="alert", no aria-live
+      document.getElementById('fname-error').style.display = fname ? 'none' : 'block';
+      document.getElementById('email-error').style.display = (email && email.includes('@')) ? 'none' : 'block';
+
+      if (fname && email && email.includes('@')) {
+        document.getElementById('form-success').style.display = 'block';
+      }
+      return false;
+    }
+  </script>
+</body>
+</html>
