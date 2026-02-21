@@ -1,7 +1,9 @@
 # Accessibility Issues Checklist
 **Luminary Studio — Accessibility Evaluation Training Site**
 
-Use this checklist to identify and document the 13 intentional WCAG 2.1 violations present on the training page.
+Use this checklist to identify and document the 12 intentional WCAG 2.1 violations present on the training page.
+
+**Note:** Violation numbering follows the original HTML comments (1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13). Violation #2 was removed as the logo link contains accessible text.
 
 ---
 
@@ -20,10 +22,6 @@ Use this checklist to identify and document the 13 intentional WCAG 2.1 violatio
 - [ ] **#1 — Missing page language declaration**
   The `<html>` element is missing a `lang` attribute, preventing screen readers from applying the correct pronunciation and speech synthesis rules.
   **WCAG 3.1.1 — Language of Page (Level A)**
-
-- [ ] **#2 — Logo link has no accessible name**
-  The site logo links to the homepage but has no `aria-label`, visible text content, or `title` attribute. Screen reader users hear only "link" with no context about the destination.
-  **WCAG 4.1.2 — Name, Role, Value (Level A)**
 
 - [ ] **#6 — Interactive element uses wrong HTML element**
   The primary "View Our Work" call-to-action is a `<div>` with an `onclick` handler rather than a `<button>` or `<a>`. It cannot be activated by keyboard, has no implicit role, and is invisible to assistive technologies.
@@ -92,7 +90,6 @@ Use this checklist to identify and document the 13 intentional WCAG 2.1 violatio
 | # | Issue | WCAG Criterion | Level |
 |---|-------|---------------|-------|
 | 1 | Missing `lang` attribute on `<html>` | 3.1.1 Language of Page | A |
-| 2 | Logo link has no accessible name | 4.1.2 Name, Role, Value | A |
 | 3 | Focus outline removed globally | 2.4.7 Focus Visible | AA |
 | 4 | Hero eyebrow text ~1.9:1 contrast | 1.4.3 Contrast Minimum | AA |
 | 5 | Hero body text ~3.0:1 contrast | 1.4.3 Contrast Minimum | AA |
