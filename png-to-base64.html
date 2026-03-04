@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PNG → Base64 CSS Embedder</title>
+  <style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Helvetica, Arial, sans-serif;
+  background: #0e0e0e;
+  color: #e8e8e8;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 24px;
+}
+
+h1 {
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #555;
+  margin-bottom: 48px;
+}
+
+h1 span {
+  color: #e8e8e8;
+}
+
+.card {
+  background: #161616;
+  border: 1px solid #2a2a2a;
+  width: 100%;
+  max-width: 680px;
+  padding: 32px;
+}
+
+.drop-zone {
+  border: 1px dashed #333;
+  padding: 48px 32px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  position: relative;
+}
+
+.drop-zone:hover,
+.drop-zone.dragover {
+  border-color: #666;
+  background: #1c1c1c;
+}
+
+.drop-zone input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+
+.drop-label {
+  font-size: 13px;
+  color: #555;
+  line-height: 1.6;
+}
+
+.drop-label strong {
+  display: block;
+  font-size: 15px;
+  color: #999;
+  font-weight: 400;
+  margin-bottom: 8px;
+}
+
+.preview-row {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  margin-top: 28px;
+  padding-top: 28px;
+  border-top: 1px solid #222;
+}
+
+.preview-img {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  background: repeating-conic-gradient(#222 0% 25%, #1a1a1a 0% 50%) 0 0 / 12px 12px;
+  flex-shrink: 0;
+  border: 1px solid #2a2a2a;
+}
+
+.preview-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-name {
+  font-size: 14px;
+  color: #ccc;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-size {
+  font-size: 12px;
+  color: #555;
+  letter-spacing: 0.05em;
+}
+
+.section-label {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #555;
+  margin-bottom: 10px;
+  margin-top: 28px;
+}
+
+.selector-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.selector-row select,
+.selector-row input[type="text"] {
+  background: #111;
+  border: 1px solid #2a2a2a;
+  color: #ccc;
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  padding: 8px 12px;
+  outline: none;
+  transition: border-color 0.15s;
+  -webkit-appearance: none;
+}
+
+.selector-row select:focus,
+.selector-row input[type="text"]:focus {
+  border-color: #555;
+}
+
+.selector-row select {
+  flex-shrink: 0;
+}
+
+.selector-row input[type="text"] {
+  flex: 1;
+  min-width: 0;
+}
+
+.output-wrap {
+  position: relative;
+}
+
+textarea {
+  width: 100%;
+  background: #111;
+  border: 1px solid #2a2a2a;
+  color: #8ec07c;
+  font-family: 'Courier New', monospace;
+  font-size: 16px;
+  line-height: 1.5;
+  padding: 14px;
+  resize: vertical;
+  min-height: 120px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+textarea:focus {
+  border-color: #444;
+}
+
+.copy-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #222;
+  border: 1px solid #333;
+  color: #999;
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.copy-btn:hover {
+  background: #2e2e2e;
+  color: #ddd;
+}
+
+.copy-btn.copied {
+  color: #8ec07c;
+  border-color: #4a6a3a;
+}
+
+.resize-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.resize-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.resize-field label {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #555;
+  flex-shrink: 0;
+}
+
+.resize-field input[type="number"] {
+  background: #111;
+  border: 1px solid #2a2a2a;
+  color: #ccc;
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  padding: 8px 10px;
+  width: 88px;
+  outline: none;
+  transition: border-color 0.15s;
+  -webkit-appearance: none;
+  -moz-appearance: textfield;
+}
+
+.resize-field input[type="number"]::-webkit-inner-spin-button,
+.resize-field input[type="number"]::-webkit-outer-spin-button {
+  opacity: 0.4;
+}
+
+.resize-field input[type="number"]:focus {
+  border-color: #555;
+}
+
+.resize-divider {
+  color: #444;
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.lock-btn {
+  background: none;
+  border: 1px solid #2a2a2a;
+  color: #555;
+  cursor: pointer;
+  padding: 7px 10px;
+  font-size: 14px;
+  line-height: 1;
+  transition: border-color 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.lock-btn:hover {
+  border-color: #555;
+  color: #999;
+}
+
+.lock-btn.locked {
+  border-color: #4a6a3a;
+  color: #8ec07c;
+}
+
+.resize-apply {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  color: #aaa;
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.resize-apply:hover {
+  background: #2a2a2a;
+  color: #eee;
+  border-color: #555;
+}
+
+.resize-apply:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.resize-dims {
+  font-size: 11px;
+  color: #444;
+  margin-top: 8px;
+  letter-spacing: 0.04em;
+}
+
+.output-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 28px;
+  margin-bottom: 10px;
+}
+
+.output-header .section-label {
+  margin: 0;
+}
+
+.toggle-group {
+  display: flex;
+  border: 1px solid #2a2a2a;
+  overflow: hidden;
+}
+
+.toggle-group button {
+  background: none;
+  border: none;
+  color: #555;
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.toggle-group button:not(:last-child) {
+  border-right: 1px solid #2a2a2a;
+}
+
+.toggle-group button.active {
+  background: #222;
+  color: #e8e8e8;
+}
+
+.toggle-group button:hover:not(.active) {
+  background: #1c1c1c;
+  color: #888;
+}
+
+.hidden {
+  display: none;
+}
+
+.note {
+  font-size: 11px;
+  color: #444;
+  margin-top: 12px;
+  line-height: 1.5;
+}
+  </style>
+</head>
+<body>
+  <h1><span>PNG</span> → Base64 CSS Embedder</h1>
+
+  <div class="card">
+    <div class="drop-zone" id="dropZone">
+      <input type="file" id="fileInput" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml">
+      <div class="drop-label">
+        <strong>Drop image here</strong>
+        or click to browse — PNG, JPG, GIF, WebP, SVG
+      </div>
+    </div>
+
+    <div id="result" class="hidden">
+      <div class="preview-row">
+        <img class="preview-img" id="previewImg" alt="Preview">
+        <div class="preview-meta">
+          <div class="file-name" id="fileName"></div>
+          <div class="file-size" id="fileSize"></div>
+        </div>
+      </div>
+
+      <div class="section-label">Resize</div>
+      <div class="resize-row">
+        <div class="resize-field">
+          <label>W</label>
+          <input type="number" id="resizeW" min="1" max="8000" placeholder="—">
+        </div>
+        <span class="resize-divider">×</span>
+        <div class="resize-field">
+          <label>H</label>
+          <input type="number" id="resizeH" min="1" max="8000" placeholder="—">
+        </div>
+        <button class="lock-btn locked" id="lockBtn" title="Constrain proportions">⛓</button>
+        <button class="resize-apply" id="applyResize">Apply</button>
+      </div>
+      <div class="resize-dims" id="resizeDims"></div>
+
+      <div id="cssSection">
+        <div class="section-label">CSS Property</div>
+        <div class="selector-row">
+          <select id="propertySelect">
+            <option value="background-image">background-image</option>
+            <option value="background">background</option>
+            <option value="content">content</option>
+            <option value="border-image-source">border-image-source</option>
+            <option value="list-style-image">list-style-image</option>
+            <option value="mask-image">mask-image</option>
+            <option value="custom">custom…</option>
+          </select>
+          <input type="text" id="customProperty" placeholder="property name" class="hidden">
+          <input type="text" id="selectorInput" placeholder=".my-element" value=".my-element" style="max-width:180px;">
+        </div>
+      </div>
+
+      <div class="output-header">
+        <div class="section-label">Output</div>
+        <div class="toggle-group">
+          <button id="modeCss" class="active">CSS</button>
+          <button id="modeRaw">Base64</button>
+        </div>
+      </div>
+      <div class="output-wrap">
+        <textarea id="output" readonly rows="5"></textarea>
+        <button class="copy-btn" id="copyBtn">Copy</button>
+      </div>
+      <div class="note" id="sizeNote"></div>
+    </div>
+  </div>
+
+  <script type="module">
+const fileInput = document.getElementById('fileInput');
+const dropZone = document.getElementById('dropZone');
+const result = document.getElementById('result');
+const previewImg = document.getElementById('previewImg');
+const fileName = document.getElementById('fileName');
+const fileSize = document.getElementById('fileSize');
+const propertySelect = document.getElementById('propertySelect');
+const customProperty = document.getElementById('customProperty');
+const selectorInput = document.getElementById('selectorInput');
+const output = document.getElementById('output');
+const copyBtn = document.getElementById('copyBtn');
+const sizeNote = document.getElementById('sizeNote');
+const resizeW = document.getElementById('resizeW');
+const resizeH = document.getElementById('resizeH');
+const lockBtn = document.getElementById('lockBtn');
+const applyResize = document.getElementById('applyResize');
+const resizeDims = document.getElementById('resizeDims');
+
+const modeCss = document.getElementById('modeCss');
+const modeRaw = document.getElementById('modeRaw');
+
+let outputMode = 'css'; // 'css' | 'raw'
+
+let currentDataURL = '';
+let currentMime = '';
+let naturalW = 0;
+let naturalH = 0;
+let locked = true;
+
+function formatBytes(n) {
+  if (n < 1024) return n + ' B';
+  if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
+  return (n / 1048576).toFixed(2) + ' MB';
+}
+
+function updateSizeInfo(dataURL, origSize) {
+  const b64len = dataURL.length - dataURL.indexOf(',') - 1;
+  const approxBytes = Math.round(b64len * 0.75);
+  const origPart = origSize != null ? `${formatBytes(origSize)} original · ` : '';
+  fileSize.textContent = `${origPart}~${formatBytes(approxBytes)} base64`;
+  const kb = approxBytes / 1024;
+  sizeNote.textContent = kb > 20
+    ? `⚠ Encodes to ~${formatBytes(approxBytes)}. Large inline images increase stylesheet size and may affect load performance.`
+    : '';
+}
+
+function buildOutput() {
+  if (!currentDataURL) return;
+  if (outputMode === 'raw') {
+    output.value = currentDataURL;
+    output.rows = 4;
+  } else {
+    const prop = propertySelect.value === 'custom'
+      ? customProperty.value.trim() || 'background-image'
+      : propertySelect.value;
+    const sel = selectorInput.value.trim() || '.my-element';
+    output.value = `${sel} {\n  ${prop}: url("${currentDataURL}");\n}`;
+    output.rows = 5;
+  }
+}
+
+// keep old name as alias so existing callsites work
+const buildCSS = buildOutput;
+
+function setResizeDims(w, h) {
+  resizeW.value = w;
+  resizeH.value = h;
+  resizeDims.textContent = `Original: ${naturalW} × ${naturalH} px`;
+}
+
+function renderToCanvas(w, h) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL(currentMime === 'image/png' ? 'image/png' : 'image/jpeg', 0.92));
+    };
+    img.src = currentDataURL;
+  });
+}
+
+function handleFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  currentMime = file.type;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const raw = e.target.result;
+    const img = new Image();
+    img.onload = () => {
+      naturalW = img.naturalWidth;
+      naturalH = img.naturalHeight;
+      currentDataURL = raw;
+      previewImg.src = raw;
+      fileName.textContent = file.name;
+      updateSizeInfo(raw, file.size);
+      setResizeDims(naturalW, naturalH);
+      result.classList.remove('hidden');
+      buildCSS();
+    };
+    img.src = raw;
+  };
+  reader.readAsDataURL(file);
+}
+
+// Constrain proportions on W change
+resizeW.addEventListener('input', () => {
+  if (!locked || !naturalW) return;
+  const w = parseInt(resizeW.value);
+  if (w > 0) resizeH.value = Math.round(w * naturalH / naturalW);
+});
+
+// Constrain proportions on H change
+resizeH.addEventListener('input', () => {
+  if (!locked || !naturalH) return;
+  const h = parseInt(resizeH.value);
+  if (h > 0) resizeW.value = Math.round(h * naturalW / naturalH);
+});
+
+lockBtn.addEventListener('click', () => {
+  locked = !locked;
+  lockBtn.classList.toggle('locked', locked);
+  lockBtn.title = locked ? 'Constrain proportions (on)' : 'Constrain proportions (off)';
+  lockBtn.textContent = locked ? '⛓' : '⛓';
+  lockBtn.style.opacity = locked ? '' : '0.4';
+});
+
+applyResize.addEventListener('click', async () => {
+  const w = parseInt(resizeW.value);
+  const h = parseInt(resizeH.value);
+  if (!w || !h || w < 1 || h < 1) return;
+  applyResize.disabled = true;
+  applyResize.textContent = '…';
+  const resized = await renderToCanvas(w, h);
+  currentDataURL = resized;
+  previewImg.src = resized;
+  resizeDims.textContent = `Resized to: ${w} × ${h} px  ·  Original: ${naturalW} × ${naturalH} px`;
+  updateSizeInfo(resized, null);
+  buildCSS();
+  applyResize.disabled = false;
+  applyResize.textContent = 'Apply';
+});
+
+const cssSection = document.getElementById('cssSection');
+
+function setMode(mode) {
+  outputMode = mode;
+  modeCss.classList.toggle('active', mode === 'css');
+  modeRaw.classList.toggle('active', mode === 'raw');
+  cssSection.classList.toggle('hidden', mode === 'raw');
+  buildOutput();
+}
+
+modeCss.addEventListener('click', () => setMode('css'));
+modeRaw.addEventListener('click', () => setMode('raw'));
+
+fileInput.addEventListener('change', () => handleFile(fileInput.files[0]));
+
+dropZone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  dropZone.classList.add('dragover');
+});
+
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  handleFile(e.dataTransfer.files[0]);
+});
+
+propertySelect.addEventListener('change', () => {
+  customProperty.classList.toggle('hidden', propertySelect.value !== 'custom');
+  buildCSS();
+});
+
+customProperty.addEventListener('input', buildCSS);
+selectorInput.addEventListener('input', buildCSS);
+
+copyBtn.addEventListener('click', () => {
+  navigator.clipboard.writeText(output.value).then(() => {
+    copyBtn.textContent = 'Copied!';
+    copyBtn.classList.add('copied');
+    setTimeout(() => {
+      copyBtn.textContent = 'Copy';
+      copyBtn.classList.remove('copied');
+    }, 1800);
+  });
+});
+  </script>
+</body>
+</html>
