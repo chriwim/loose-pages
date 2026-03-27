@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Bookmarklet Forge</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #111118;
+      --border: #1e1e2e;
+      --accent: #7fff7f;
+      --accent2: #7fd4ff;
+      --text: #e8e8f0;
+      --muted: #5a5a72;
+      --danger: #ff6b6b;
+      --chatgpt-color: #19c37d;
+      --chatgpt-glow: rgba(25,195,125,0.25);
+      --chatgpt-bg: rgba(25,195,125,0.08);
+      --chatgpt-border: rgba(25,195,125,0.3);
+      --claude-color: #d4915a;
+      --claude-glow: rgba(212,145,90,0.25);
+      --claude-bg: rgba(212,145,90,0.08);
+      --claude-border: rgba(212,145,90,0.3);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; min-height: 100vh; overflow-x: hidden; }
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background-image: linear-gradient(rgba(127,255,127,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(127,255,127,0.025) 1px, transparent 1px);
+      background-size: 40px 40px; pointer-events: none; z-index: 0;
+    }
+    body::after {
+      content: ''; position: fixed; top: -50%; left: -20%; width: 60%; height: 100%;
+      background: radial-gradient(ellipse, rgba(127,255,127,0.035) 0%, transparent 70%);
+      pointer-events: none; z-index: 0; animation: drift 20s ease-in-out infinite alternate;
+    }
+    @keyframes drift { from { transform: translate(0,0) rotate(0deg); } to { transform: translate(10%,5%) rotate(5deg); } }
+    .container-wrap { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding: 60px 24px 80px; }
+    .header-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(127,255,127,0.07); border: 1px solid rgba(127,255,127,0.18);
+      color: var(--accent); font-family: 'Space Mono', monospace; font-size: 11px;
+      letter-spacing: 0.15em; padding: 6px 14px; border-radius: 2px; margin-bottom: 28px; text-transform: uppercase;
+    }
+    .header-badge::before { content: ''; width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: pulse 2s ease infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+    h1 { font-size: clamp(2.2rem,6vw,3.8rem); font-weight: 800; line-height: 1.05; letter-spacing: -0.03em; margin-bottom: 16px; }
+    h1 .grad { background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .subtitle { color: var(--muted); font-size: 1rem; line-height: 1.7; margin-bottom: 52px; max-width: 520px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 36px 36px 32px; position: relative; overflow: hidden; }
+    .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), var(--accent2), transparent); opacity: 0.45; }
+    .target-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 28px; }
+    .target-option { position: relative; }
+    .target-option input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+    .target-btn {
+      display: flex; align-items: center; gap: 12px; width: 100%;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 3px;
+      padding: 16px 18px; cursor: pointer;
+      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s; user-select: none;
+    }
+    .target-btn:hover { border-color: #2e2e44; }
+    .target-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .target-info { text-align: left; }
+    .target-name { font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 700; letter-spacing: 0.05em; color: var(--text); display: block; margin-bottom: 2px; transition: color 0.2s; }
+    .target-desc { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted); display: block; }
+    .target-btn::after { content: ''; width: 7px; height: 7px; border-radius: 50%; border: 1px solid var(--muted); margin-left: auto; flex-shrink: 0; transition: background 0.2s, border-color 0.2s; }
+    .target-option input[value="chatgpt"]:checked ~ .target-btn { border-color: var(--chatgpt-border); background: var(--chatgpt-bg); box-shadow: 0 0 20px var(--chatgpt-glow); }
+    .target-option input[value="chatgpt"]:checked ~ .target-btn .target-name { color: var(--chatgpt-color); }
+    .target-option input[value="chatgpt"]:checked ~ .target-btn::after { background: var(--chatgpt-color); border-color: var(--chatgpt-color); }
+    .target-option input[value="claude"]:checked ~ .target-btn { border-color: var(--claude-border); background: var(--claude-bg); box-shadow: 0 0 20px var(--claude-glow); }
+    .target-option input[value="claude"]:checked ~ .target-btn .target-name { color: var(--claude-color); }
+    .target-option input[value="claude"]:checked ~ .target-btn::after { background: var(--claude-color); border-color: var(--claude-color); }
+    .field-label { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    .field-label .req { color: var(--accent); font-size: 14px; line-height: 1; }
+    textarea, input[type="text"] { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 3px; color: var(--text); font-family: 'Space Mono', monospace; font-size: 13px; line-height: 1.6; padding: 14px 16px; outline: none; transition: border-color 0.2s, box-shadow 0.2s; resize: vertical; }
+    textarea:focus, input[type="text"]:focus { border-color: rgba(127,255,127,0.35); box-shadow: 0 0 0 3px rgba(127,255,127,0.05); }
+    textarea::placeholder, input::placeholder { color: var(--muted); }
+    .hint { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); margin-top: 8px; line-height: 1.55; }
+    .hint code { color: var(--accent2); background: rgba(127,212,255,0.08); padding: 1px 5px; border-radius: 2px; }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+    .btn-generate {
+      width: 100%; color: #0a0a0f; font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase; border: none; border-radius: 3px; padding: 16px;
+      cursor: pointer; transition: transform 0.15s, box-shadow 0.15s, background 0.2s; position: relative; overflow: hidden;
+    }
+    .btn-generate:hover { transform: translateY(-1px); }
+    .btn-generate:active { transform: translateY(0); }
+    .btn-generate::after { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.12) 50%, transparent 60%); transform: translateX(-100%); transition: transform 0.4s; }
+    .btn-generate:hover::after { transform: translateX(100%); }
+    #output-section { display: none; margin-top: 40px; animation: slideUp 0.4s ease; }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .output-label { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+    #output-card.target-chatgpt { border-color: rgba(25,195,125,0.2); }
+    #output-card.target-chatgpt::before { background: linear-gradient(90deg, transparent, var(--chatgpt-color), transparent); }
+    #output-card.target-claude { border-color: rgba(212,145,90,0.2); }
+    #output-card.target-claude::before { background: linear-gradient(90deg, transparent, var(--claude-color), transparent); }
+    .output-target-badge { display: inline-flex; align-items: center; gap: 6px; font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; padding: 4px 10px; border-radius: 2px; margin-bottom: 20px; }
+    .output-target-badge.chatgpt { background: var(--chatgpt-bg); border: 1px solid var(--chatgpt-border); color: var(--chatgpt-color); }
+    .output-target-badge.claude { background: var(--claude-bg); border: 1px solid var(--claude-border); color: var(--claude-color); }
+    .bookmarklet-wrapper { background: var(--bg); border: 1px solid rgba(127,255,127,0.1); border-radius: 3px; padding: 20px; margin-bottom: 20px; }
+    .bookmarklet-code { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--accent2); word-break: break-all; line-height: 1.6; max-height: 80px; overflow: hidden; mask-image: linear-gradient(to bottom, black 40%, transparent 100%); }
+    .drag-zone { margin-top: 24px; border: 2px dashed rgba(127,255,127,0.16); border-radius: 3px; padding: 28px 20px; text-align: center; transition: border-color 0.2s, background 0.2s; }
+    .drag-zone:hover { border-color: rgba(127,255,127,0.36); background: rgba(127,255,127,0.02); }
+    .bookmarklet-link { display: inline-block; font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; padding: 12px 24px; border-radius: 3px; text-decoration: none; cursor: grab; transition: background 0.2s, box-shadow 0.2s; letter-spacing: 0.05em; }
+    .bookmarklet-link.chatgpt { background: var(--chatgpt-bg); border: 1px solid var(--chatgpt-border); color: var(--chatgpt-color); }
+    .bookmarklet-link.chatgpt:hover { background: rgba(25,195,125,0.16); box-shadow: 0 0 22px var(--chatgpt-glow); }
+    .bookmarklet-link.claude { background: var(--claude-bg); border: 1px solid var(--claude-border); color: var(--claude-color); }
+    .bookmarklet-link.claude:hover { background: rgba(212,145,90,0.16); box-shadow: 0 0 22px var(--claude-glow); }
+    .drag-hint { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); margin-top: 12px; line-height: 1.6; }
+    .btn-copy { background: transparent; border: 1px solid var(--border); color: var(--text); font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; padding: 10px 20px; border-radius: 3px; cursor: pointer; transition: border-color 0.2s, color 0.2s, background 0.2s; width: 100%; margin-top: 12px; }
+    .btn-copy:hover { border-color: var(--accent2); color: var(--accent2); background: rgba(127,212,255,0.05); }
+    .btn-copy.copied { border-color: var(--accent); color: var(--accent); background: rgba(127,255,127,0.05); }
+    .how-section { margin-top: 64px; }
+    .section-title { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin-bottom: 20px; }
+    .steps { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    @media (max-width: 600px) { .steps { grid-template-columns: 1fr; } .card { padding: 24px 20px; } .target-selector { grid-template-columns: 1fr; } }
+    .step { background: var(--surface); border: 1px solid var(--border); border-radius: 3px; padding: 20px; }
+    .step-num { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--accent); margin-bottom: 10px; letter-spacing: 0.1em; }
+    .step-text { font-size: 13px; color: var(--muted); line-height: 1.6; }
+    footer { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--border); font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); text-align: center; }
+    .optional-tag { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted); background: rgba(255,255,255,0.04); border: 1px solid var(--border); padding: 2px 6px; border-radius: 2px; margin-left: 4px; }
+    .error-msg { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--danger); margin-top: 8px; display: none; }
+  </style>
+</head>
+<body>
+  <div class="container-wrap">
+
+    <div class="header-badge">Bookmarklet Forge</div>
+    <h1>Send any page to<br><span class="grad">your AI of choice</span></h1>
+    <p class="subtitle">
+      Build a custom browser bookmarklet that instantly sends the current page's URL
+      to ChatGPT or Claude — with your own prompt, one click away.
+    </p>
+
+    <div class="card">
+
+      <!-- Target Selector -->
+      <div style="margin-bottom: 28px;">
+        <div class="field-label">Send to</div>
+        <div class="target-selector">
+
+          <label class="target-option">
+            <input type="radio" name="target" value="chatgpt" checked />
+            <div class="target-btn">
+              <div class="target-icon" style="background: rgba(25,195,125,0.12);">
+                <svg width="20" height="20" viewBox="0 0 41 41" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M37.532 16.87a9.963 9.963 0 0 0-.856-8.184 10.078 10.078 0 0 0-10.855-4.835 9.964 9.964 0 0 0-6.211-2.325 10.079 10.079 0 0 0-9.587 6.977 9.967 9.967 0 0 0-6.664 4.834 10.08 10.08 0 0 0 1.24 11.817 9.965 9.965 0 0 0 .856 8.185 10.079 10.079 0 0 0 10.855 4.835 9.965 9.965 0 0 0 6.211 2.325 10.079 10.079 0 0 0 9.587-6.977 9.967 9.967 0 0 0 6.664-4.834 10.079 10.079 0 0 0-1.24-11.818zm-17.962 14.547a7.453 7.453 0 0 1-4.785-1.725c.061-.033.168-.091.237-.134l7.946-4.588a1.291 1.291 0 0 0 .655-1.134V19.054l3.355 1.936a.12.12 0 0 1 .066.092v9.299a7.505 7.505 0 0 1-7.474 7.082zm-16.032-6.873a7.453 7.453 0 0 1-.891-5.023c.06.036.162.099.237.141l7.946 4.588a1.292 1.292 0 0 0 1.308 0l9.705-5.603v3.873a.12.12 0 0 1-.048.103l-8.033 4.636a7.504 7.504 0 0 1-10.224-2.715zm-2.09-17.207a7.45 7.45 0 0 1 3.895-3.272c0 .068-.004.19-.004.274v9.175a1.29 1.29 0 0 0 .654 1.132l9.706 5.604-3.355 1.936a.12.12 0 0 1-.114.012L10.15 23.178a7.504 7.504 0 0 1-8.702-15.841zm27.535 6.437l-9.706-5.604 3.356-1.935a.121.121 0 0 1 .114-.012l8.082 4.664a7.502 7.502 0 0 1-1.16 13.531v-9.449a1.291 1.291 0 0 0-.686-1.195zm3.337-5.043c-.059-.037-.162-.099-.236-.141l-7.947-4.588a1.291 1.291 0 0 0-1.308 0l-9.705 5.603v-3.873a.12.12 0 0 1 .048-.103l8.033-4.635a7.503 7.503 0 0 1 11.115 7.737zm-21.063 6.929l-3.356-1.936a.12.12 0 0 1-.065-.092v-9.299a7.501 7.501 0 0 1 12.293-5.756 6.94 6.94 0 0 0-.236.134l-7.947 4.588a1.29 1.29 0 0 0-.654 1.132l-.035 11.229zm1.829-3.943l4.33-2.501 4.332 2.5v4.999l-4.331 2.5-4.331-2.5V18.84z" fill="#19c37d"/>
+                </svg>
+              </div>
+              <div class="target-info">
+                <span class="target-name">ChatGPT</span>
+                <span class="target-desc">Private / temporary chat</span>
+              </div>
+            </div>
+          </label>
+
+          <label class="target-option">
+            <input type="radio" name="target" value="claude" />
+            <div class="target-btn">
+              <div class="target-icon" style="background: rgba(212,145,90,0.12);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M4.5 20 C6 16 9 12 12 10 C15 12 18 16 19.5 20" stroke="#d4915a" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+                  <circle cx="12" cy="7" r="3" fill="#d4915a"/>
+                  <path d="M8 13.5 C6 13 4 12 3 10.5" stroke="#d4915a" stroke-width="1.3" fill="none" stroke-linecap="round" opacity="0.55"/>
+                  <path d="M16 13.5 C18 13 20 12 21 10.5" stroke="#d4915a" stroke-width="1.3" fill="none" stroke-linecap="round" opacity="0.55"/>
+                </svg>
+              </div>
+              <div class="target-info">
+                <span class="target-name">Claude</span>
+                <span class="target-desc">New conversation</span>
+              </div>
+            </div>
+          </label>
+
+        </div>
+      </div>
+
+      <!-- Name -->
+      <div style="margin-bottom: 24px;">
+        <div class="field-label">
+          Bookmarklet Name
+          <span class="optional-tag">optional</span>
+        </div>
+        <input type="text" id="bm-name" placeholder="e.g. Summarize Page, Analyze This..." maxlength="60" />
+        <p class="hint">Displayed as the bookmark name in your browser toolbar.</p>
+      </div>
+
+      <!-- Prompt -->
+      <div>
+        <div class="field-label">
+          Your Prompt <span class="req">*</span>
+        </div>
+        <textarea id="bm-prompt" rows="5" placeholder="e.g. Summarize the key points of this article in bullet points. Be concise.
+
+The page URL is: [URL]"></textarea>
+        <p id="prompt-error" class="error-msg">Please enter a prompt before generating.</p>
+        <p class="hint">
+          Use <code>[URL]</code> anywhere in your prompt to insert the current page URL.
+          If you don't include it, the URL is appended automatically.
+        </p>
+      </div>
+
+      <hr class="divider">
+
+      <button class="btn-generate" id="generate-btn" onclick="generateBookmarklet()">
+        ⚡ Generate Bookmarklet
+      </button>
+    </div>
+
+    <!-- Output -->
+    <div id="output-section">
+      <div class="card" id="output-card">
+        <div id="output-target-badge" class="output-target-badge chatgpt">● ChatGPT — Private Chat</div>
+
+        <div class="bookmarklet-wrapper">
+          <div class="output-label" style="margin-bottom: 8px;">Raw Code</div>
+          <div class="bookmarklet-code" id="bm-code-preview"></div>
+        </div>
+
+        <button class="btn-copy" id="copy-btn" onclick="copyCode()">Copy Raw Code</button>
+
+        <div class="drag-zone">
+          <a id="bm-link" href="#" class="bookmarklet-link chatgpt" onclick="return false;">
+            📎 Drag me to your bookmarks bar
+          </a>
+          <p class="drag-hint">
+            Drag the button above to your browser's bookmarks / favorites bar.<br>
+            Then click it on any webpage to run your prompt!
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- How it works -->
+    <div class="how-section">
+      <div class="section-title">// How it works</div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">01 — Configure</div>
+          <div class="step-text">Choose ChatGPT or Claude, name your bookmarklet, and write your custom prompt. Use <code style="color:var(--accent2);font-family:monospace;font-size:11px;">[URL]</code> to inject the current page's URL.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">02 — Install</div>
+          <div class="step-text">Drag the generated bookmarklet to your browser's bookmarks bar. No extensions or sign-in needed here.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">03 — Use</div>
+          <div class="step-text">Navigate to any page and click your bookmark. Your chosen AI opens with your prompt and the URL, ready to go.</div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      Bookmarklets run entirely in your browser — no data is sent anywhere except the AI you choose when you click.
+    </footer>
+
+  </div>
+
+  <script>
+    const TARGETS = {
+      chatgpt: {
+        buildUrl: (p) => 'https://chatgpt.com/?temporary-chat=true&q=' + encodeURIComponent(p),
+        label: '● ChatGPT — Private Chat',
+        defaultName: 'ChatGPT Prompt',
+        btnColor: '#19c37d',
+        btnShadow: 'rgba(25,195,125,0.35)',
+      },
+      claude: {
+        buildUrl: (p) => 'https://claude.ai/new?q=' + encodeURIComponent(p),
+        label: '● Claude — New Chat',
+        defaultName: 'Claude Prompt',
+        btnColor: '#d4915a',
+        btnShadow: 'rgba(212,145,90,0.35)',
+      }
+    };
+
+    let generatedCode = '';
+
+    function getTarget() {
+      return document.querySelector('input[name="target"]:checked').value;
+    }
+
+    function updateGenerateBtn() {
+      const cfg = TARGETS[getTarget()];
+      const btn = document.getElementById('generate-btn');
+      btn.style.background = cfg.btnColor;
+      btn.onmouseover = () => { btn.style.boxShadow = '0 0 30px ' + cfg.btnShadow; };
+      btn.onmouseout  = () => { btn.style.boxShadow = 'none'; };
+    }
+
+    document.querySelectorAll('input[name="target"]').forEach(r => r.addEventListener('change', updateGenerateBtn));
+    updateGenerateBtn();
+
+    function generateBookmarklet() {
+      const promptEl = document.getElementById('bm-prompt');
+      const errorEl  = document.getElementById('prompt-error');
+      const target   = getTarget();
+      const cfg      = TARGETS[target];
+      const name     = document.getElementById('bm-name').value.trim() || cfg.defaultName;
+      const prompt   = promptEl.value.trim();
+
+      if (!prompt) { errorEl.style.display = 'block'; promptEl.focus(); return; }
+      errorEl.style.display = 'none';
+
+      const pj = JSON.stringify(prompt);
+      const urlExpr = target === 'chatgpt'
+        ? "'https://chatgpt.com/?temporary-chat=true&q='+encodeURIComponent(p)"
+        : "'https://claude.ai/new?q='+encodeURIComponent(p)";
+
+      const minified = `(function(){var url=location.href;var prompt=${pj};var p=prompt.indexOf('[URL]')!==-1?prompt.split('[URL]').join(url):prompt+'\\n\\nPage URL: '+url;window.open(${urlExpr},'_blank');})();`;
+      generatedCode = 'javascript:' + minified;
+
+      // Update badge
+      const badge = document.getElementById('output-target-badge');
+      badge.textContent = cfg.label;
+      badge.className   = 'output-target-badge ' + target;
+
+      // Update card accent
+      document.getElementById('output-card').className = 'card target-' + target;
+
+      // Update code preview
+      document.getElementById('bm-code-preview').textContent = generatedCode;
+
+      // Update drag link
+      const link = document.getElementById('bm-link');
+      link.href      = generatedCode;
+      link.textContent = '📎 ' + name;
+      link.className = 'bookmarklet-link ' + target;
+
+      // Reset copy btn
+      const copyBtn = document.getElementById('copy-btn');
+      copyBtn.textContent = 'Copy Raw Code';
+      copyBtn.classList.remove('copied');
+
+      // Show & scroll
+      const section = document.getElementById('output-section');
+      section.style.display = 'block';
+      setTimeout(() => section.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    }
+
+    function copyCode() {
+      if (!generatedCode) return;
+      const btn = document.getElementById('copy-btn');
+      const done = () => {
+        btn.textContent = '✓ Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copy Raw Code'; btn.classList.remove('copied'); }, 2000);
+      };
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(generatedCode).then(done).catch(() => fallback(done));
+      } else { fallback(done); }
+    }
+
+    function fallback(cb) {
+      const ta = document.createElement('textarea');
+      ta.value = generatedCode;
+      ta.style.cssText = 'position:fixed;opacity:0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      cb();
+    }
+
+    document.getElementById('bm-name').addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); document.getElementById('bm-prompt').focus(); }
+    });
+    document.getElementById('bm-prompt').addEventListener('input', () => {
+      document.getElementById('prompt-error').style.display = 'none';
+    });
+  </script>
+</body>
+</html>
