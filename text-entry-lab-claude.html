@@ -1,0 +1,497 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Text Entry Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one 46rem column; a single panel swaps between setup, trial and results. Data and stimulus in mono, UI in sans. */
+:root {
+  --bg: #eceff1;
+  --surface: #fafbfb;
+  --field: #ffffff;
+  --ink: #182126;
+  --muted: #56646d;
+  --line: #cfd6db;
+  --accent: #0a6b78;
+  --accent-ink: #ffffff;
+  --accent-soft: #dcecee;
+  --warn: #a8321f;
+  --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11181c;
+    --surface: #182126;
+    --field: #0f1519;
+    --ink: #e4ebee;
+    --muted: #9aa9b2;
+    --line: #2d3b43;
+    --accent: #5cc3cf;
+    --accent-ink: #082126;
+    --accent-soft: #1b3a40;
+    --warn: #f08a76;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11181c;
+  --surface: #182126;
+  --field: #0f1519;
+  --ink: #e4ebee;
+  --muted: #9aa9b2;
+  --line: #2d3b43;
+  --accent: #5cc3cf;
+  --accent-ink: #082126;
+  --accent-soft: #1b3a40;
+  --warn: #f08a76;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.5;
+  padding-block: 28px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+main { max-width: 46rem; margin: 0 auto; display: grid; gap: 20px; }
+h1 { font-size: 1.6rem; line-height: 1.2; margin: 0 0 4px; font-weight: 600; text-wrap: balance; }
+h2 { font-size: 1.05rem; margin: 0 0 12px; font-weight: 600; }
+p { margin: 0; }
+.lede { color: var(--muted); max-width: 62ch; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 20px; min-width: 0; }
+.eyebrow { font-family: var(--font-data); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+
+form, .grid-fields { display: grid; gap: 16px; }
+.grid-fields { grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr)); }
+label, .label { display: grid; gap: 6px; font-size: 0.85rem; color: var(--muted); font-weight: 500; }
+input[type="text"], input[type="number"] {
+  font: inherit; color: var(--ink); background: var(--field);
+  border: 1px solid var(--line); border-radius: 4px; padding: 9px 10px; width: 100%; min-width: 0;
+}
+input:focus-visible, button:focus-visible, summary:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+button {
+  font: inherit; font-weight: 500; cursor: pointer; border-radius: 4px; padding: 9px 16px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+}
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button.primary:hover { filter: brightness(1.08); }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.row.between { justify-content: space-between; }
+
+.source { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 0.85rem; color: var(--muted); }
+.source b { color: var(--ink); font-weight: 500; font-family: var(--font-data); }
+.source input[type="file"] { max-width: 100%; font-size: 0.8rem; }
+.note { font-size: 0.85rem; color: var(--muted); }
+.note.warn { color: var(--warn); }
+
+/* trial */
+.progress { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; margin: 10px 0 18px; }
+.progress > span { display: block; height: 100%; background: var(--accent); width: 0; }
+.stimulus {
+  font-family: var(--font-data); font-size: clamp(1.15rem, 3.6vw, 1.6rem); line-height: 1.4;
+  padding: 16px; background: var(--accent-soft); border-radius: 4px; margin-block: 8px 14px;
+  overflow-wrap: anywhere; user-select: none; -webkit-user-select: none;
+}
+#entry { font-family: var(--font-data); font-size: clamp(1.05rem, 3.2vw, 1.4rem); padding: 12px; }
+.tag { font-family: var(--font-data); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 6px; border: 1px solid var(--line); border-radius: 3px; color: var(--muted); }
+
+/* results */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); gap: 12px; margin-bottom: 18px; }
+.stat { border: 1px solid var(--line); border-radius: 4px; padding: 12px; background: var(--field); }
+.stat .v { font-family: var(--font-data); font-size: 1.6rem; font-weight: 500; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.stat .k { font-size: 0.8rem; color: var(--muted); }
+.stat .sd { font-family: var(--font-data); font-size: 0.75rem; color: var(--muted); }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 4px; }
+table { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; background: var(--field); }
+tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-family: var(--font-data); font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.txt { font-family: var(--font-data); min-width: 11rem; overflow-wrap: anywhere; }
+tr.practice td { color: var(--muted); }
+.diff { color: var(--warn); }
+textarea#csv {
+  width: 100%; min-height: 8rem; font-family: var(--font-data); font-size: 0.75rem; color: var(--ink);
+  background: var(--field); border: 1px solid var(--line); border-radius: 4px; padding: 10px; resize: vertical; white-space: pre; overflow: auto;
+}
+details { border-top: 1px solid var(--line); padding-top: 14px; }
+summary { cursor: pointer; font-weight: 600; }
+details ul { margin: 12px 0 0; padding-left: 1.2rem; display: grid; gap: 8px; max-width: 66ch; }
+code, .mono { font-family: var(--font-data); font-size: 0.85em; }
+</style>
+
+<main>
+  <header>
+    <h1>Text Entry Lab</h1>
+    <p class="lede">Show participants phrases from the MacKenzie and Soukoreff set, time each transcription, and score speed in words per minute with corrected, uncorrected and total error rates.</p>
+  </header>
+
+  <section class="panel" id="setup" aria-labelledby="setupTitle">
+    <h2 id="setupTitle">Session setup</h2>
+    <form id="setupForm" autocomplete="off">
+      <div class="grid-fields">
+        <label for="pid">Participant ID
+          <input type="text" id="pid" value="P01" maxlength="24">
+        </label>
+        <label for="cond">Condition
+          <input type="text" id="cond" value="Condition A" maxlength="40">
+        </label>
+        <label for="nPractice">Practice phrases
+          <input type="number" id="nPractice" value="2" min="0" max="10">
+        </label>
+        <label for="nTrials">Test phrases
+          <input type="number" id="nTrials" value="10" min="1" max="50">
+        </label>
+      </div>
+      <div class="source" id="sourceRow">
+        <span>Phrase source: <b id="sourceName">Built-in subset</b> <span id="sourceCount"></span></span>
+        <label for="phraseFile" class="label" style="display:inline-grid">
+          <span>Load full phrase file (.txt, one phrase per line)</span>
+          <input type="file" id="phraseFile" accept=".txt,text/plain">
+        </label>
+        <button type="button" id="resetSource" hidden>Use built-in subset</button>
+      </div>
+      <p class="note" id="setupNote">Phrases are drawn in random order without repeats. Practice phrases are recorded but left out of the summary.</p>
+      <div class="row"><button type="submit" class="primary" id="startBtn">Start session</button></div>
+    </form>
+  </section>
+
+  <section class="panel" id="trial" aria-labelledby="trialTitle" hidden>
+    <div class="row between">
+      <div class="row">
+        <h2 id="trialTitle" style="margin:0" aria-live="polite">Phrase 1 of 12</h2>
+        <span class="tag" id="practiceTag" hidden>Practice</span>
+      </div>
+      <button type="button" id="endBtn">End session</button>
+    </div>
+    <div class="progress" aria-hidden="true"><span id="bar"></span></div>
+    <div class="eyebrow">Type this phrase</div>
+    <div class="stimulus" id="stimulus"></div>
+    <label for="entry">Your transcription
+      <input type="text" id="entry" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-describedby="entryHint">
+    </label>
+    <p class="note" id="entryHint" style="margin-top:10px">The clock starts at your first keystroke and stops when you press Enter. Backspace works; pasting and cursor movement are disabled.</p>
+  </section>
+
+  <section class="panel" id="results" aria-labelledby="resultsTitle" hidden>
+    <h2 id="resultsTitle">Results</h2>
+    <p class="note" id="resultsMeta" style="margin-bottom:14px"></p>
+    <div class="stats" id="stats"></div>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="num">#</th><th>Presented / transcribed</th>
+            <th class="num">Sec</th><th class="num">WPM</th><th class="num">MSD</th>
+            <th class="num">CER %</th><th class="num">UER %</th><th class="num">TER %</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:18px; display:grid; gap:10px">
+      <div class="row between">
+        <h2 style="margin:0">Data (CSV)</h2>
+        <div class="row">
+          <button type="button" id="copyBtn">Copy CSV</button>
+          <span class="note" id="copyMsg" role="status"></span>
+        </div>
+      </div>
+      <textarea id="csv" readonly aria-label="Trial data as CSV"></textarea>
+    </div>
+    <div class="row" style="margin-top:18px">
+      <button type="button" class="primary" id="againBtn">Run another session</button>
+      <button type="button" id="backBtn">Change setup</button>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="methodTitle">
+    <details>
+      <summary id="methodTitle">How the numbers are calculated</summary>
+      <ul>
+        <li><b>Speed.</b> WPM = ((|T| − 1) / S) × 60 / 5, where |T| is the length of the transcribed text, S is the time in seconds from the first keystroke to Enter, and a word is five characters. The first character is excluded because its time cannot be measured.</li>
+        <li><b>Uncorrected errors.</b> INF is the minimum string distance (MSD) between the presented phrase P and the submitted text T. Comparison is case-sensitive and uses the raw strings.</li>
+        <li><b>Corrected errors.</b> IF counts characters that were entered and later deleted. The page logs every insertion and deletion, so IF = characters entered − |T|. C = |T| − INF.</li>
+        <li><b>Rates.</b> CER = IF / (C + INF + IF). UER = INF / (C + INF + IF). TER = (INF + IF) / (C + INF + IF). All are shown as percentages. KSPC in the CSV is (entered + deleted) / |T|.</li>
+        <li><b>Summary.</b> Means and sample standard deviations are taken over test phrases only. Edits are measured by comparing the field before and after each change, so a multi-character deletion counts as that many deleted characters.</li>
+        <li><b>Sources.</b> Phrase set: MacKenzie and Soukoreff, “Phrase sets for evaluating text entry techniques,” CHI 2003 Extended Abstracts. Error metrics: Soukoreff and MacKenzie, “Metrics for text entry research,” CHI 2003.</li>
+      </ul>
+    </details>
+  </section>
+</main>
+
+<script>
+/* Subset of the MacKenzie and Soukoreff (2003) 500-phrase set. Load the full file from the setup panel. */
+var BUILTIN = [
+  "my watch fell in the water","prevailing wind from the east","never too rich and never too thin",
+  "breathing is difficult","I can see the rings on Saturn","physics and chemistry are hard",
+  "my bank account is overdrawn","elections bring out the best","we are having spaghetti",
+  "time to go shopping","a problem with the engine","elephants are afraid of mice",
+  "my favorite place to visit","three two one zero blast off","my favorite subject is psychology",
+  "circumstances are unacceptable","watch out for low flying objects","if at first you do not succeed",
+  "please provide your date of birth","we run the risk of failure","prayers work miracles",
+  "the stock exchange dropped","cats and dogs each hate the other","the next switch is the one on the left",
+  "the tuxedo was out of style","the dog ate my homework","my fingers are all thumbs",
+  "the assignment is due today","what you see is what you get","for your information only",
+  "a quarter of a century","the store opens at ten","a rose by any other name","I agree with you",
+  "it is difficult to concentrate","the aspirations of a nation","this is a very good idea",
+  "all together in one big pile","the flat tire was fixed","everyone loves a parade",
+  "do not squander your time","I am going to a music lesson","we have a lot of rain in June"
+];
+
+/*METRICS*/
+function msd(a, b) {
+  var m = a.length, n = b.length, prev = [], cur, i, j;
+  for (j = 0; j <= n; j++) prev[j] = j;
+  for (i = 1; i <= m; i++) {
+    cur = [i];
+    for (j = 1; j <= n; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    prev = cur;
+  }
+  return prev[n];
+}
+function wpmOf(len, ms) {
+  if (len < 2 || ms <= 0) return null;
+  return ((len - 1) / (ms / 1000)) * 60 / 5;
+}
+function scoreTrial(P, T, entered, deleted, ms) {
+  var inf = msd(P, T);
+  var c = Math.max(T.length - inf, 0);
+  var iff = Math.max(entered - T.length, 0);
+  var denom = c + inf + iff;
+  return {
+    msd: inf,
+    wpm: wpmOf(T.length, ms),
+    cer: denom ? iff / denom * 100 : 0,
+    uer: denom ? inf / denom * 100 : 0,
+    ter: denom ? (inf + iff) / denom * 100 : 0,
+    kspc: T.length ? (entered + deleted) / T.length : null
+  };
+}
+function meanSd(xs) {
+  var v = xs.filter(function (x) { return x !== null && isFinite(x); });
+  if (!v.length) return { m: null, sd: null, n: 0 };
+  var m = v.reduce(function (s, x) { return s + x; }, 0) / v.length;
+  var sd = v.length > 1 ? Math.sqrt(v.reduce(function (s, x) { return s + (x - m) * (x - m); }, 0) / (v.length - 1)) : null;
+  return { m: m, sd: sd, n: v.length };
+}
+/*END*/
+
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var pool = BUILTIN.slice(), poolName = "Built-in subset";
+  var cfg = {}, queue = [], idx = 0, rows = [];
+  var prev = "", entered = 0, deleted = 0, t0 = null;
+
+  function show(which) {
+    ["setup", "trial", "results"].forEach(function (k) { $(k).hidden = (k !== which); });
+  }
+  function updateSource() {
+    $("sourceName").textContent = poolName;
+    $("sourceCount").textContent = "(" + pool.length + " phrases)";
+    $("resetSource").hidden = (pool === BUILTIN || poolName === "Built-in subset");
+    $("nTrials").max = Math.min(50, pool.length);
+  }
+  function shuffle(a) {
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+  function clampInt(v, lo, hi, d) {
+    var n = parseInt(v, 10);
+    if (isNaN(n)) n = d;
+    return Math.max(lo, Math.min(hi, n));
+  }
+
+  $("phraseFile").addEventListener("change", function (e) {
+    var f = e.target.files && e.target.files[0];
+    if (!f) return;
+    var r = new FileReader();
+    r.onload = function () {
+      var list = String(r.result).split(/\r?\n/).map(function (s) { return s.trim(); }).filter(Boolean);
+      if (list.length < 5) {
+        $("setupNote").textContent = "That file has fewer than 5 non-empty lines. Use a plain text file with one phrase per line.";
+        $("setupNote").className = "note warn";
+        return;
+      }
+      pool = list; poolName = f.name;
+      $("setupNote").textContent = "Loaded " + list.length + " phrases from " + f.name + ".";
+      $("setupNote").className = "note";
+      updateSource();
+    };
+    r.readAsText(f);
+  });
+  $("resetSource").addEventListener("click", function () {
+    pool = BUILTIN.slice(); poolName = "Built-in subset";
+    $("phraseFile").value = "";
+    $("setupNote").textContent = "Back to the built-in subset.";
+    $("setupNote").className = "note";
+    updateSource();
+  });
+
+  $("setupForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    cfg.pid = $("pid").value.trim() || "P01";
+    cfg.cond = $("cond").value.trim() || "Condition";
+    cfg.practice = clampInt($("nPractice").value, 0, 10, 2);
+    cfg.trials = clampInt($("nTrials").value, 1, 50, 10);
+    startSession();
+  });
+
+  function startSession() {
+    var total = cfg.practice + cfg.trials;
+    if (total > pool.length) {
+      cfg.trials = Math.max(1, pool.length - cfg.practice);
+      total = cfg.practice + cfg.trials;
+      if (total > pool.length) { cfg.practice = 0; total = cfg.trials = pool.length; }
+    }
+    queue = shuffle(pool.slice()).slice(0, total);
+    idx = 0; rows = [];
+    show("trial");
+    loadTrial();
+  }
+
+  function loadTrial() {
+    var total = queue.length;
+    $("trialTitle").textContent = "Phrase " + (idx + 1) + " of " + total;
+    $("practiceTag").hidden = idx >= cfg.practice;
+    $("bar").style.width = (idx / total * 100) + "%";
+    $("stimulus").textContent = queue[idx];
+    var inp = $("entry");
+    inp.value = ""; prev = ""; entered = 0; deleted = 0; t0 = null;
+    inp.focus();
+  }
+
+  var entry = $("entry");
+  entry.addEventListener("input", function () {
+    var v = entry.value, now = performance.now();
+    if (t0 === null && v.length > 0) t0 = now;
+    var l = Math.min(prev.length, v.length), p = 0;
+    while (p < l && prev.charAt(p) === v.charAt(p)) p++;
+    entered += v.length - p;
+    deleted += prev.length - p;
+    prev = v;
+    if (v.length) entry.setSelectionRange(v.length, v.length);
+  });
+  ["paste", "cut", "drop", "dragstart"].forEach(function (ev) {
+    entry.addEventListener(ev, function (e) { e.preventDefault(); });
+  });
+  function caretToEnd() { var n = entry.value.length; entry.setSelectionRange(n, n); }
+  ["mouseup", "select", "click", "touchend"].forEach(function (ev) {
+    entry.addEventListener(ev, caretToEnd);
+  });
+  entry.addEventListener("keydown", function (e) {
+    if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].indexOf(e.key) >= 0) {
+      e.preventDefault(); return;
+    }
+    if ((e.ctrlKey || e.metaKey) && ["a", "v", "x", "z", "y"].indexOf(e.key.toLowerCase()) >= 0) {
+      e.preventDefault(); return;
+    }
+    if (e.key === "Enter" && !e.isComposing) {
+      e.preventDefault();
+      submitTrial(performance.now());
+    }
+  });
+
+  function submitTrial(tEnd) {
+    var T = entry.value;
+    if (!T.length || t0 === null) return;
+    var P = queue[idx], ms = tEnd - t0;
+    var s = scoreTrial(P, T, entered, deleted, ms);
+    rows.push({
+      n: idx + 1, practice: idx < cfg.practice, presented: P, transcribed: T,
+      sec: ms / 1000, wpm: s.wpm, msd: s.msd, cer: s.cer, uer: s.uer, ter: s.ter,
+      kspc: s.kspc, entered: entered, deleted: deleted
+    });
+    idx++;
+    if (idx >= queue.length) finish(); else loadTrial();
+  }
+
+  $("endBtn").addEventListener("click", function () { finish(); });
+
+  function fmt(x, d) { return (x === null || x === undefined || !isFinite(x)) ? "–" : x.toFixed(d); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+
+  function diffHtml(P, T) {
+    if (P === T) return esc(T);
+    return esc(P) + '<br><span class="diff">' + esc(T) + "</span>";
+  }
+
+  function finish() {
+    show("results");
+    var test = rows.filter(function (r) { return !r.practice; });
+    var w = meanSd(test.map(function (r) { return r.wpm; }));
+    var t = meanSd(test.map(function (r) { return r.ter; }));
+    var c = meanSd(test.map(function (r) { return r.cer; }));
+    var u = meanSd(test.map(function (r) { return r.uer; }));
+    $("resultsMeta").textContent = cfg.pid + " · " + cfg.cond + " · " + test.length + " test phrase" + (test.length === 1 ? "" : "s") +
+      (rows.length - test.length ? " (+" + (rows.length - test.length) + " practice)" : "") + " · " + poolName;
+    function stat(k, o, d, unit) {
+      return '<div class="stat"><div class="v">' + fmt(o.m, d) + (o.m === null ? "" : unit) + '</div><div class="k">' + k +
+        '</div><div class="sd">SD ' + fmt(o.sd, d) + "</div></div>";
+    }
+    $("stats").innerHTML = test.length
+      ? stat("Words per minute", w, 2, "") + stat("Total error rate", t, 1, "%") + stat("Corrected errors", c, 1, "%") + stat("Uncorrected errors", u, 1, "%")
+      : '<p class="note">No test phrases were completed, so there is no summary. Practice trials are listed below.</p>';
+    $("rows").innerHTML = rows.length ? rows.map(function (r) {
+      return '<tr class="' + (r.practice ? "practice" : "") + '"><td class="num">' + r.n + (r.practice ? "·p" : "") + '</td><td class="txt">' + diffHtml(r.presented, r.transcribed) +
+        '</td><td class="num">' + fmt(r.sec, 2) + '</td><td class="num">' + fmt(r.wpm, 2) + '</td><td class="num">' + r.msd +
+        '</td><td class="num">' + fmt(r.cer, 1) + '</td><td class="num">' + fmt(r.uer, 1) + '</td><td class="num">' + fmt(r.ter, 1) + "</td></tr>";
+    }).join("") : '<tr><td colspan="8" class="note">No trials recorded.</td></tr>';
+    $("csv").value = toCsv();
+    $("copyMsg").textContent = "";
+  }
+
+  function q(s) { return '"' + String(s).replace(/"/g, '""') + '"'; }
+  function toCsv() {
+    var head = ["participant", "condition", "trial", "practice", "presented", "transcribed", "seconds", "wpm", "msd", "cer_pct", "uer_pct", "ter_pct", "kspc", "entered", "deleted"];
+    var lines = [head.join(",")];
+    rows.forEach(function (r) {
+      lines.push([q(cfg.pid), q(cfg.cond), r.n, r.practice ? 1 : 0, q(r.presented), q(r.transcribed),
+        fmt(r.sec, 3), fmt(r.wpm, 3), r.msd, fmt(r.cer, 2), fmt(r.uer, 2), fmt(r.ter, 2), fmt(r.kspc, 3), r.entered, r.deleted].join(","));
+    });
+    return lines.join("\n");
+  }
+
+  $("copyBtn").addEventListener("click", function () {
+    var ta = $("csv");
+    function fallback() {
+      ta.focus(); ta.select();
+      $("copyMsg").textContent = "Selected. Press Ctrl/Cmd+C to copy.";
+    }
+    try {
+      navigator.clipboard.writeText(ta.value).then(function () {
+        $("copyMsg").textContent = "Copied.";
+      }, fallback);
+    } catch (err) { fallback(); }
+  });
+
+  $("againBtn").addEventListener("click", function () {
+    var pid = cfg.pid;
+    var m = /^(.*?)(\d+)$/.exec(pid);
+    if (m) {
+      var next = String(parseInt(m[2], 10) + 1);
+      while (next.length < m[2].length) next = "0" + next;
+      $("pid").value = m[1] + next;
+    }
+    show("setup");
+    $("startBtn").focus();
+  });
+  $("backBtn").addEventListener("click", function () { show("setup"); });
+
+  updateSource();
+})();
+</script>
+
+</body></html>

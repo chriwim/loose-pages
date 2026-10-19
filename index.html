@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10131b">
+  <title>Loose Pages</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #10131b;
+      --surface: #181d28;
+      --line: #2a3242;
+      --text: #edf1f8;
+      --muted: #a3adbd;
+      --accent: #9bd9c1;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      max-width: 850px;
+      margin: 0 auto;
+      padding: 64px 24px;
+      background: var(--bg);
+      color: var(--text);
+      font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    header { margin-bottom: 32px; }
+    h1 { margin: 0; font-size: clamp(2rem, 6vw, 3rem); letter-spacing: -0.04em; }
+    header p { margin: 8px 0 0; color: var(--muted); }
+    ol { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+
+    li {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 18px 20px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface);
+    }
+
+    .page-info { min-width: 0; }
+    a { color: var(--accent); font-weight: 650; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    a:hover { color: #c0f2df; }
+    .description { margin: 5px 0 0; color: var(--muted); }
+    time { flex: none; padding-top: 3px; color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
+
+    @media (max-width: 560px) {
+      body { padding: 40px 16px; }
+      li { flex-direction: column; gap: 8px; padding: 16px; }
+      time { padding-top: 0; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Loose Pages</h1>
+    <p>Small standalone tools, experiments, and games, ordered by most recently modified.</p>
+  </header>
+
+  <main>
+    <ol>
+      <li>
+        <div class="page-info">
+          <a href="text-entry-lab-claude.html">Text Entry Lab</a>
+          <p class="description">A configurable typing experiment for measuring entry speed and accuracy, with trial results and CSV data export.</p>
+        </div>
+        <time datetime="2026-10-15T09:52:33">2026-10-15 09:52</time>
+      </li>
+      <li>
+        <div class="page-info">
+          <a href="text-entry-game-claude.html">Meteor Text Entry</a>
+          <p class="description">A meteor-themed typing game where you enter words to clear falling targets.</p>
+        </div>
+        <time datetime="2026-10-14T23:01:42">2026-10-14 23:01</time>
+      </li>
+      <li>
+        <div class="page-info">
+          <a href="text-entry-game-gemini.html">Meteor Type Command</a>
+          <p class="description">A typing arcade experiment: type the words on incoming meteors to destroy them before impact.</p>
+        </div>
+        <time datetime="2026-10-14T19:09:34">2026-10-14 19:09</time>
+      </li>
+      <li>
+        <div class="page-info">
+          <a href="text-entry-game-chatgpt.html">Word Defense Lab</a>
+          <p class="description">A text-entry defense game and experiment built around typing words to protect the horizon.</p>
+        </div>
+        <time datetime="2026-10-14T18:39:31">2026-10-14 18:39</time>
+      </li>
+      <li>
+        <div class="page-info">
+          <a href="chatbot-bookmarklet-generator.html">AI Bookmarklet Forge</a>
+          <p class="description">Generate a bookmarklet to send the current page and a prompt to ChatGPT or Claude.</p>
+        </div>
+        <time datetime="2026-05-16T16:08:21">2026-05-16 16:08</time>
+      </li>
+      <li>
+        <div class="page-info">
+          <a href="png-to-base64.html">PNG → Base64 CSS Embedder</a>
+          <p class="description">Convert a PNG image into a Base64 data URL for embedding in CSS.</p>
+        </div>
+        <time datetime="2026-05-16T16:08:21">2026-05-16 16:08</time>
+      </li>
+      <li>
+        <div class="page-info">
+          <a href="single-note.html">Single Note</a>
+          <p class="description">A minimal text area that saves your note in the browser and lets you copy it to the clipboard.</p>
+        </div>
+        <time datetime="2026-05-16T16:08:21">2026-05-16 16:08</time>
+      </li>
+    </ol>
+  </main>
+</body>
+</html>

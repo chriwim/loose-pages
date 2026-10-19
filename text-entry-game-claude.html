@@ -1,0 +1,785 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Meteor Text Entry</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one-screen instrument. Header HUD on top, sky canvas fills the middle, typing bar at the bottom.
+   Single deliberate dark look (night sky), so every color is set explicitly. */
+:root {
+  --sky-top: #0c1322;
+  --sky-bot: #2b2450;
+  --ground: #070a13;
+  --panel: rgba(13, 18, 34, 0.92);
+  --ink: #ebe6da;
+  --muted: #9ca2bb;
+  --line: rgba(235, 230, 218, 0.16);
+  --ember: #ff9b4d;
+  --typed: #5eead4;
+  --danger: #ff5f76;
+  --bar: #0a0f1d;
+  --font-display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --gutter-l: max(16px, env(safe-area-inset-left, 0px));
+  --gutter-r: max(16px, env(safe-area-inset-right, 0px));
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--bar);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.45;
+  overflow: hidden;
+}
+* { box-sizing: border-box; }
+.app { height: 100%; display: flex; flex-direction: column; min-width: 0; }
+
+/* header / HUD */
+.hud {
+  background: var(--bar);
+  border-bottom: 1px solid var(--line);
+  padding: 8px var(--gutter-r) 8px var(--gutter-l);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 22px;
+}
+.brand {
+  font-family: var(--font-display); font-weight: 800; font-size: 20px;
+  letter-spacing: 0.14em; text-transform: uppercase; margin-right: auto; white-space: nowrap;
+}
+.brand i { font-style: normal; color: var(--ember); }
+.stat { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+.stat span {
+  font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
+}
+.stat b {
+  font-family: var(--font-display); font-weight: 600; font-size: 24px; line-height: 1;
+  font-variant-numeric: tabular-nums; min-width: 3ch;
+}
+.pips { display: flex; gap: 4px; flex-wrap: wrap; max-width: 150px; padding-top: 4px; }
+.pip { width: 10px; height: 14px; background: var(--ember); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.pip.lost { background: transparent; box-shadow: inset 0 0 0 1px var(--line); background: var(--line); opacity: .5; }
+.btn {
+  font: 600 13px var(--font-body); color: var(--ink); background: transparent;
+  border: 1px solid var(--line); padding: 8px 14px; border-radius: 3px; cursor: pointer;
+}
+.btn:hover { border-color: var(--ink); }
+.btn.primary { background: var(--ember); border-color: var(--ember); color: #1a1006; }
+.btn.primary:hover { background: #ffb274; border-color: #ffb274; }
+.btn:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--typed); outline-offset: 2px;
+}
+
+/* stage */
+.stage {
+  position: relative; flex: 1; min-height: 0;
+  background: linear-gradient(to bottom, var(--sky-top), var(--sky-bot));
+}
+canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+/* typing bar */
+.bar {
+  background: var(--bar); border-top: 1px solid var(--line);
+  padding: 10px var(--gutter-r) calc(10px + env(safe-area-inset-bottom, 0px)) var(--gutter-l);
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+#inp {
+  width: min(460px, 100%); text-align: center;
+  font: 500 24px var(--font-mono); letter-spacing: 0.04em;
+  color: var(--ink); background: rgba(235,230,218,0.05);
+  border: 1px solid var(--line); border-bottom: 2px solid var(--muted);
+  border-radius: 3px; padding: 8px 12px;
+}
+#inp.ok { border-bottom-color: var(--typed); color: var(--typed); }
+#inp.bad { border-bottom-color: var(--danger); color: var(--danger); }
+#inp.err { animation: nope .25s; }
+@keyframes nope { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+.hint { font-size: 12px; color: var(--muted); text-align: center; }
+
+/* overlays */
+.overlay {
+  position: absolute; inset: 0; display: flex; align-items: flex-start; justify-content: center;
+  padding: 16px var(--gutter-r) 16px var(--gutter-l);
+  background: rgba(7, 10, 19, 0.7); backdrop-filter: blur(4px);
+  overflow-y: auto;
+}
+.panel {
+  margin: auto; width: 100%; max-width: 680px; min-width: 0;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 22px;
+}
+.panel h1, .panel h2 {
+  font-family: var(--font-display); font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.08em; margin: 0 0 4px; line-height: 1; text-wrap: balance;
+}
+.panel h1 { font-size: 40px; }
+.panel h2 { font-size: 34px; }
+.lede { color: var(--muted); margin: 8px 0 18px; max-width: 60ch; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px 18px; }
+.field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.field label, .field .lab {
+  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+  display: flex; justify-content: space-between; gap: 8px;
+}
+.field label output { color: var(--ink); font-variant-numeric: tabular-nums; }
+.field input[type=text], .field input[type=number], .field select {
+  font: 400 14px var(--font-body); color: var(--ink); background: rgba(235,230,218,0.06);
+  border: 1px solid var(--line); border-radius: 3px; padding: 8px 10px; width: 100%; min-width: 0;
+}
+.field select option { background: #12182b; color: var(--ink); }
+.field input[type=range] { width: 100%; accent-color: var(--ember); }
+.field.check { flex-direction: row; align-items: center; gap: 8px; }
+.field.check label { text-transform: none; letter-spacing: 0; font-size: 14px; color: var(--ink); }
+.row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; align-items: center; }
+.sep { height: 1px; background: var(--line); margin: 18px 0; }
+h3 { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ember); margin: 0 0 10px; font-weight: 600; }
+
+/* results */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); margin-top: 16px; }
+.tile { background: var(--panel); padding: 12px 14px; min-width: 0; }
+.tile span { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); display: block; }
+.tile b { font-family: var(--font-display); font-weight: 600; font-size: 34px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.tile small { font-size: 12px; color: var(--muted); margin-left: 3px; }
+.tablewrap { overflow: auto; max-height: 220px; border: 1px solid var(--line); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 5px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { position: sticky; top: 0; background: #151b30; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+td.mono { font-family: var(--font-mono); }
+.tag { font-size: 11px; padding: 1px 7px; border-radius: 2px; }
+.tag.hit { background: rgba(94,234,212,.16); color: var(--typed); }
+.tag.miss { background: rgba(255,95,118,.18); color: var(--danger); }
+.tag.error { background: rgba(255,155,77,.2); color: var(--ember); }
+textarea {
+  width: 100%; height: 110px; font: 12px var(--font-mono); color: var(--ink);
+  background: rgba(235,230,218,0.05); border: 1px solid var(--line); border-radius: 3px; padding: 8px; resize: vertical;
+}
+details { margin-top: 14px; color: var(--muted); font-size: 13px; }
+details summary { cursor: pointer; color: var(--ink); }
+details p { margin: 8px 0 0; max-width: 70ch; }
+.msg { font-size: 12px; color: var(--typed); min-height: 1.4em; margin-top: 6px; }
+
+@media (max-width: 520px) {
+  .panel { padding: 16px; }
+  .panel h1 { font-size: 32px; }
+  .stat b { font-size: 20px; }
+  .brand { font-size: 16px; width: 100%; }
+  #inp { font-size: 20px; }
+}
+</style>
+
+<div class="app">
+  <header class="hud">
+    <div class="brand">Meteor <i>Text Entry</i></div>
+    <div class="stat"><span>Time</span><b id="hTime">0:00</b></div>
+    <div class="stat"><span>Destroyed</span><b id="hHits">0</b></div>
+    <div class="stat"><span>WPM</span><b id="hWpm">–</b></div>
+    <div class="stat"><span>Errors</span><b id="hErr">–</b></div>
+    <div class="stat"><span>Impacts</span><div class="pips" id="pips"></div></div>
+    <button class="btn" id="pauseBtn" type="button" hidden>Pause</button>
+  </header>
+
+  <div class="stage" id="stage">
+    <canvas id="c" aria-label="Falling meteors, each labelled with a word to type"></canvas>
+
+    <!-- setup -->
+    <div class="overlay" id="setup" role="dialog" aria-labelledby="setupTitle">
+      <div class="panel">
+        <h1 id="setupTitle">Meteor Text Entry</h1>
+        <p class="lede">Each meteor carries an English word. Type the word to destroy it. When too many meteors reach the ground the session ends. Entry speed and error rates are logged for every keystroke.</p>
+
+        <h3>Session</h3>
+        <div class="grid">
+          <div class="field"><label for="pid">Participant ID</label><input type="text" id="pid" value="P01" autocomplete="off"></div>
+          <div class="field"><label for="cond">Condition label</label><input type="text" id="cond" value="baseline" autocomplete="off"></div>
+          <div class="field"><label for="seed">Seed (blank = random)</label><input type="text" id="seed" placeholder="e.g. 4821" autocomplete="off"></div>
+          <div class="field"><label for="limit">Time limit</label>
+            <select id="limit">
+              <option value="0">None (until game over)</option>
+              <option value="60">1 minute</option>
+              <option value="120">2 minutes</option>
+              <option value="180">3 minutes</option>
+              <option value="300">5 minutes</option>
+            </select></div>
+        </div>
+
+        <div class="sep"></div>
+        <h3>Task</h3>
+        <div class="grid">
+          <div class="field"><label for="mode">Word is entered when</label>
+            <select id="mode">
+              <option value="auto">the last letter is typed</option>
+              <option value="space">Space or Enter is pressed</option>
+            </select></div>
+          <div class="field"><label for="lives">Impacts allowed <output id="livesO"></output></label><input type="range" id="lives" min="1" max="15" step="1" value="5"></div>
+          <div class="field"><label for="speed">Fall speed <output id="speedO"></output></label><input type="range" id="speed" min="0.4" max="2.5" step="0.1" value="1"></div>
+          <div class="field"><label for="interval">Seconds between meteors <output id="intervalO"></output></label><input type="range" id="interval" min="0.8" max="5" step="0.1" value="2.4"></div>
+          <div class="field"><label for="wmin">Shortest word <output id="wminO"></output></label><input type="range" id="wmin" min="3" max="8" step="1" value="3"></div>
+          <div class="field"><label for="wmax">Longest word <output id="wmaxO"></output></label><input type="range" id="wmax" min="3" max="8" step="1" value="7"></div>
+          <div class="field"><label for="fs">Word size <output id="fsO"></output></label><input type="range" id="fs" min="14" max="32" step="1" value="20"></div>
+          <div class="field check"><input type="checkbox" id="ramp" checked><label for="ramp">Speed up as the session goes on</label></div>
+        </div>
+
+        <div class="row">
+          <button class="btn primary" id="startBtn" type="button">Start session</button>
+          <span class="hint">Press Enter to start. Use a physical keyboard for experiments.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- pause -->
+    <div class="overlay" id="pause" role="dialog" aria-labelledby="pauseTitle" hidden>
+      <div class="panel" style="max-width:420px">
+        <h2 id="pauseTitle">Paused</h2>
+        <p class="lede">The clock is stopped. Paused time is not counted in speed or duration.</p>
+        <div class="row"><button class="btn primary" id="resumeBtn" type="button">Resume</button></div>
+      </div>
+    </div>
+
+    <!-- results -->
+    <div class="overlay" id="results" role="dialog" aria-labelledby="resTitle" hidden>
+      <div class="panel">
+        <h2 id="resTitle">Session over</h2>
+        <div class="lede" id="resSub"></div>
+        <div class="tiles" id="tiles"></div>
+
+        <details>
+          <summary>How these numbers are calculated</summary>
+          <p><b>WPM</b> counts (T − 1) characters per second × 60 ÷ 5, where T is the length of everything entered, spaces between words included. The clock runs from the first keystroke to the last word entered. <b>Adjusted WPM</b> is WPM × (1 − uncorrected error rate).</p>
+          <p>Keystrokes follow the Soukoreff and MacKenzie scheme: <b>C</b> correct characters, <b>INF</b> incorrect characters left in a submitted entry, <b>IF</b> incorrect characters that were typed and then deleted, <b>F</b> corrections (Backspace presses). Total error rate = (INF + IF) ÷ (C + INF + IF); corrected = IF ÷ (C + INF + IF); uncorrected = INF ÷ (C + INF + IF). KSPC = (C + INF + IF + F) ÷ (C + INF).</p>
+          <p>Letters typed toward a meteor that then crashed, with no other word matching, are cleared automatically and left out of these rates. They are listed as abandoned keystrokes in the export.</p>
+        </details>
+
+        <div class="sep"></div>
+        <h3>Word log</h3>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>#</th><th>Target</th><th>Typed</th><th>Outcome</th><th>Time (s)</th><th>Keys</th><th>Backspaces</th></tr></thead>
+            <tbody id="logBody"></tbody>
+          </table>
+        </div>
+
+        <div class="sep"></div>
+        <h3>Export</h3>
+        <div class="row" style="margin-top:0">
+          <button class="btn" type="button" data-export="summary">Copy summary CSV</button>
+          <button class="btn" type="button" data-export="trials">Copy word log CSV</button>
+          <button class="btn" type="button" data-export="keys">Copy keystroke CSV</button>
+        </div>
+        <div class="msg" id="exportMsg" role="status"></div>
+        <textarea id="exportBox" readonly aria-label="Exported data" placeholder="Choose an export above."></textarea>
+
+        <div class="row">
+          <button class="btn primary" id="againBtn" type="button">Play again</button>
+          <button class="btn" id="settingsBtn" type="button">Change settings</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bar">
+    <input id="inp" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Type the word here" disabled placeholder="type here">
+    <div class="hint" id="hint">Type a meteor's word. Backspace corrects. Esc clears.</div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* ---------- word list ---------- */
+  var WORDS = ("able acid aged also area army away baby back ball band bank base bath bear beat bell belt best bill bird blow blue boat body bone book boot born boss both bowl busy cake call calm camp card care case cash cast cell chat chip city clay clip club coal coat code cold come cook cool copy corn cost crew crop dark data date dawn dead deal dear deep desk dish disk door down draw drop drum duck dust duty each earn east easy edge else even ever face fact fair fall farm fast fate fear feed feel fell file fill film find fine fire firm fish five flag flat flow fold food foot form fort four free from fuel full fund gain game gate gift girl give glad goal gold golf good grab gray grew grid grow gulf hair half hall hand hang hard harm hate have head heal hear heat held help here hero high hill hold hole home hope horn host hour huge hunt idea iron item join jump jury just keep kick kind king knee knew lack lake land lane last late lead leaf lean left lend less life lift like line link list live load loan lock long look lord lose loss lost love luck made mail main make male many mark mask mass meal mean meat meet menu mild mile milk mind mine miss mode moon more most move much must name navy near neck need news nice nine node none noon nose note once only open over pace pack page paid pain pair palm park part pass past path peak pick pile pine pink pipe plan play plot plus poem pole pool poor port post pour pull pure push race rail rain rank rare rate read real rent rest rice rich ride ring rise risk road rock role roll roof room root rope rose rule rush safe sail salt same sand save seat seed seek self sell send ship shop shot show shut sick side sign silk sing site size skin slip slow snow soft soil sold some song soon sort soul soup spot star stay step stop such suit sure swim tail take tale talk tall tank tape task team tell tend term test text than that them then they thin this thus tide tile time tiny tire told tone took tool tour town tree trip true tube tune turn twin type unit upon used user vast very view vote wage wait wake walk wall want warm wash wave weak wear week well went were west what when whom wide wife wild will wind wine wing wire wise wish with wood word wore work worn yard yarn year zone " +
+    "about above admit adult after again agent agree ahead alarm album alive allow alone along among angle apple argue arise array aside asset avoid awake award aware basic beach began begin being below bench black blame blank blind block board brain brand bread break brick brief bring broad brown build burst buyer cable carry catch cause chain chair chart chase cheap check chest chief child claim class clean clear climb clock close cloud coach coast could count court cover craft crash cream cross crowd crown daily dance depth dozen draft drama dream dress drink drive early earth eight empty enjoy enter equal error event every exact exist extra faith false fault fiber field fifty fight final first flame float floor focus force frame fresh front fruit giant given glass globe grace grade grain grand grant grass great green group guard guess guest guide happy heart heavy horse hotel house human image index inner input issue joint judge knife known labor large laser later laugh layer learn least leave level light limit local lunch major maker march match maybe meter might minor model money month moral motor mount mouse mouth movie music night noise north novel nurse ocean offer often order other outer owner paint panel paper party peace phase phone photo piano pilot place plain plane plant plate point pound power press price pride prime print prior prize proof proud quick quiet radio raise range rapid ratio reach ready river rough round route royal rural scale scene scope score sense serve seven shade shape share sharp sheet shelf shift shine shirt shock short sight since skill sleep slide small smart smile smoke solid solve sound south space spare speak speed spend spent split sport staff stage stand start state steam steel stick still stock stone store storm story strip study stuff style sugar suite super sweet table taste teach thank their theme there thick thing think third those three throw tight title today topic total touch tower track trade train treat trend trial tribe truck truly trust truth twice under union until upper upset urban usage usual valid value video visit vital voice waste watch water wheel where which while white whole whose woman world worry worth would write wrong young youth " +
+    "anchor bridge button camera candle canyon castle channel chapter circle coffee comet corner cotton country crystal danger desert dinner doctor dragon engine evening factory family farmer finger flower forest friend garden gather ginger golden hammer harbor island jacket jungle kitchen ladder lantern letter magnet market meadow memory mirror mountain nature orange orbit parade pencil pepper planet pocket rocket saddle season shadow signal silver simple spirit spring summer sunset tablet thunder ticket timber travel tunnel valley velvet violin window winter wonder yellow").split(/\s+/);
+
+  /* ---------- seeded RNG ---------- */
+  function hashSeed(s) { var h = 1779033703 ^ s.length; for (var i = 0; i < s.length; i++) { h = Math.imul(h ^ s.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); } return h >>> 0; }
+  function mulberry32(a) { return function () { a |= 0; a = (a + 0x6D2B79F5) | 0; var t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  function lev(a, b) {
+    var m = a.length, n = b.length, d = [], i, j;
+    for (i = 0; i <= m; i++) { d[i] = [i]; }
+    for (j = 1; j <= n; j++) { d[0][j] = j; }
+    for (i = 1; i <= m; i++) for (j = 1; j <= n; j++) {
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    return d[m][n];
+  }
+
+  /* ---------- elements ---------- */
+  var stageEl = $("stage"), canvas = $("c"), ctx = canvas.getContext("2d"), inp = $("inp");
+  var reduceMotion = false;
+  try { reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+
+  /* ---------- settings ---------- */
+  var FIELDS = ["pid", "cond", "seed", "limit", "mode", "lives", "speed", "interval", "wmin", "wmax", "fs"];
+  function syncOutputs() {
+    $("livesO").textContent = $("lives").value;
+    $("speedO").textContent = (+$("speed").value).toFixed(1) + "×";
+    $("intervalO").textContent = (+$("interval").value).toFixed(1) + " s";
+    $("wminO").textContent = $("wmin").value + " letters";
+    $("wmaxO").textContent = $("wmax").value + " letters";
+    $("fsO").textContent = $("fs").value + " px";
+  }
+  function loadCfg() {
+    try {
+      var s = JSON.parse(localStorage.getItem("mte.cfg") || "null");
+      if (s) { FIELDS.forEach(function (f) { if (s[f] !== undefined && $(f)) $(f).value = s[f]; }); if (s.ramp !== undefined) $("ramp").checked = s.ramp; }
+    } catch (e) {}
+    syncOutputs();
+  }
+  function saveCfg() {
+    try { var o = {}; FIELDS.forEach(function (f) { o[f] = $(f).value; }); o.ramp = $("ramp").checked; localStorage.setItem("mte.cfg", JSON.stringify(o)); } catch (e) {}
+  }
+  function readCfg() {
+    var wmin = +$("wmin").value, wmax = +$("wmax").value;
+    if (wmax < wmin) { var t = wmin; wmin = wmax; wmax = t; }
+    return {
+      pid: $("pid").value.trim() || "P01", cond: $("cond").value.trim() || "baseline",
+      seed: $("seed").value.trim() || String(Math.floor(Math.random() * 1e6)),
+      limit: +$("limit").value, mode: $("mode").value, lives: Math.max(1, +$("lives").value | 0),
+      speed: +$("speed").value, interval: +$("interval").value, wmin: wmin, wmax: wmax,
+      fs: +$("fs").value, ramp: $("ramp").checked
+    };
+  }
+  document.querySelectorAll("#setup input[type=range]").forEach(function (r) { r.addEventListener("input", syncOutputs); });
+
+  /* ---------- state ---------- */
+  var GH = 54; // ground height
+  var W = 0, H = 0, DPR = 1;
+  var cfg, rng, pool, state = "setup";
+  var t0 = 0, pausedAcc = 0, pauseStart = 0, endT = 0, lastT = 0;
+  var meteors = [], particles = [], rings = [], beams = [];
+  var buffer = "", attempt, stats, trials = [], keylog = [];
+  var crashes = 0, spawnTimer = 0, shake = 0, flash = 0, turretA = -Math.PI / 2, hudT = 0, meteorId = 0;
+  var stars = [], skyline = [];
+
+  function nowMs() {
+    if (state === "running") return performance.now() - t0 - pausedAcc;
+    if (state === "paused") return pauseStart - t0 - pausedAcc;
+    return endT;
+  }
+
+  /* ---------- canvas sizing ---------- */
+  function genScenery() {
+    stars = [];
+    for (var i = 0; i < 110; i++) stars.push({ x: Math.random(), y: Math.random(), r: Math.random() < 0.15 ? 2 : 1, p: Math.random() * 6 });
+    skyline = [];
+    var x = -4;
+    while (x < W + 4) {
+      var w = 14 + Math.random() * 22, h = 8 + Math.random() * 28, wins = [];
+      for (var wy = 6; wy < h - 3; wy += 6) for (var wx = 3; wx < w - 4; wx += 6) wins.push({ x: wx, y: wy, th: Math.random() });
+      skyline.push({ x: x, w: w, h: h, wins: wins });
+      x += w + Math.random() * 4;
+    }
+  }
+  function resize() {
+    var r = stageEl.getBoundingClientRect();
+    DPR = Math.min(2, window.devicePixelRatio || 1);
+    W = r.width; H = r.height;
+    canvas.width = Math.max(1, Math.round(W * DPR)); canvas.height = Math.max(1, Math.round(H * DPR));
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    genScenery();
+  }
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(stageEl); else window.addEventListener("resize", resize);
+  resize();
+
+  /* ---------- metrics ---------- */
+  function metrics() {
+    var s = stats, total = s.C + s.INF + s.IF;
+    var T = s.entryChars + Math.max(0, s.entryCount - 1);
+    var S = (s.firstKeyT != null && s.lastEntryT != null) ? (s.lastEntryT - s.firstKeyT) / 1000 : 0;
+    var wpm = (S > 0 && T > 1) ? ((T - 1) / S) * 12 : 0;
+    var uer = total ? s.INF / total : 0;
+    var hits = trials.filter(function (t) { return t.type === "hit" && t.dur !== ""; });
+    var mean = hits.length ? hits.reduce(function (a, t) { return a + t.dur; }, 0) / hits.length / 1000 : 0;
+    return {
+      wpm: wpm, adj: wpm * (1 - uer), ter: total ? (s.INF + s.IF) / total : 0, cer: total ? s.IF / total : 0, uer: uer,
+      kspc: (s.C + s.INF) ? (s.C + s.INF + s.IF + s.F) / (s.C + s.INF) : 0, mean: mean, S: S, T: T
+    };
+  }
+  function fmtTime(ms) { var s = Math.max(0, Math.floor(ms / 1000)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
+  function pct(x) { return (x * 100).toFixed(1); }
+
+  function updateHud() {
+    var t = nowMs();
+    $("hTime").textContent = cfg && cfg.limit ? fmtTime(cfg.limit * 1000 - t) : fmtTime(t);
+    $("hHits").textContent = stats ? stats.hits : 0;
+    if (stats && stats.entryCount > 0) {
+      var m = metrics();
+      $("hWpm").textContent = m.wpm > 0 ? m.wpm.toFixed(0) : "–";
+      $("hErr").textContent = pct(m.ter) + "%";
+    } else { $("hWpm").textContent = "–"; $("hErr").textContent = "–"; }
+  }
+  function renderPips() {
+    var p = $("pips"); p.innerHTML = "";
+    if (!cfg) return;
+    for (var i = 0; i < cfg.lives; i++) { var s = document.createElement("span"); s.className = "pip" + (i < crashes ? " lost" : ""); p.appendChild(s); }
+  }
+
+  /* ---------- game flow ---------- */
+  function show(id) { ["setup", "pause", "results"].forEach(function (o) { $(o).hidden = (o !== id); }); }
+
+  function startGame() {
+    cfg = readCfg(); saveCfg();
+    rng = mulberry32(hashSeed(cfg.seed));
+    var seen = {};
+    pool = WORDS.filter(function (w) { if (seen[w] || w.length < cfg.wmin || w.length > cfg.wmax) return false; seen[w] = 1; return true; });
+    meteors = []; particles = []; rings = []; beams = [];
+    buffer = ""; inp.value = ""; inp.className = "";
+    stats = { C: 0, INF: 0, IF: 0, F: 0, entryChars: 0, entryCount: 0, firstKeyT: null, lastEntryT: null, hits: 0, errors: 0, misses: 0, abandoned: 0, spawned: 0, keys: 0 };
+    trials = []; keylog = [];
+    attempt = { chars: 0, bs: 0, startT: null };
+    crashes = 0; spawnTimer = 0.9; shake = 0; flash = 0; turretA = -Math.PI / 2; hudT = 0;
+    $("hint").textContent = cfg.mode === "auto" ? "Words explode when you finish typing them. Backspace corrects, Space or Enter submits what you typed, Esc clears." : "Type a word, then press Space or Enter. Backspace corrects, Esc clears.";
+    t0 = performance.now(); pausedAcc = 0; lastT = 0; endT = 0;
+    state = "running";
+    show(null); $("pauseBtn").hidden = false;
+    inp.disabled = false; inp.focus();
+    renderPips(); updateHud();
+  }
+  function pauseGame() { if (state !== "running") return; state = "paused"; pauseStart = performance.now(); inp.disabled = true; show("pause"); $("resumeBtn").focus(); }
+  function resumeGame() { if (state !== "paused") return; pausedAcc += performance.now() - pauseStart; state = "running"; lastT = nowMs(); show(null); inp.disabled = false; inp.focus(); }
+  function gameOver(reason) {
+    endT = nowMs(); state = "over"; inp.disabled = true; inp.blur(); $("pauseBtn").hidden = true;
+    showResults(reason); show("results");
+  }
+
+  /* ---------- spawning ---------- */
+  function labelFont() { return "500 " + cfg.fs + 'px "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace'; }
+  function spawn() {
+    var groundY = H - GH, lvl = stats.spawned, word = null, i;
+    for (i = 0; i < 40; i++) {
+      var w = pool[(rng() * pool.length) | 0];
+      if (!meteors.some(function (m) { return m.word.indexOf(w) === 0 || w.indexOf(m.word) === 0; })) { word = w; break; }
+    }
+    if (!word) { spawnTimer = 0.3; return; }
+    ctx.font = labelFont();
+    var lw = ctx.measureText(word).width, pad = Math.min(W / 2, lw / 2 + 16), x = W / 2;
+    if (W > 2 * pad) {
+      for (i = 0; i < 14; i++) {
+        x = pad + rng() * (W - 2 * pad);
+        var clash = meteors.some(function (m) { return m.y < 120 && Math.abs(m.x - x) < (m.lw + lw) / 2 + 24; });
+        if (!clash) break;
+      }
+    }
+    var sp = cfg.speed * (cfg.ramp ? Math.min(2.2, 1 + 0.02 * lvl) : 1);
+    var rock = [], n = 9;
+    for (i = 0; i < n; i++) rock.push(0.78 + Math.random() * 0.4);
+    meteors.push({ id: ++meteorId, word: word, x: x, y: -24, vx: (rng() - 0.5) * 16, v: sp * 0.07 * groundY, r: 11 + Math.random() * 4, lw: lw, pad: pad, spawnT: nowMs(), rock: rock, rot: Math.random() * 6, spin: (Math.random() - 0.5) * 2 });
+    stats.spawned++;
+    spawnTimer = cfg.interval * (cfg.ramp ? Math.max(0.5, 1 - 0.015 * lvl) : 1) * (0.8 + 0.4 * rng());
+  }
+
+  /* ---------- update ---------- */
+  function boom(x, y, n, big) {
+    for (var i = 0; i < n; i++) {
+      var a = Math.random() * 6.283, v = (big ? 40 : 30) + Math.random() * (big ? 220 : 160);
+      particles.push({ x: x, y: y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.5 + Math.random() * 0.5, max: 1, c: Math.random() < 0.5 ? "255,155,77" : (Math.random() < 0.5 ? "255,226,170" : "235,230,218") });
+    }
+    rings.push({ x: x, y: y, life: 0.45, max: 0.45, big: big });
+  }
+  function update(dt, t) {
+    var groundY = H - GH, i;
+    spawnTimer -= dt;
+    if (spawnTimer <= 0) spawn();
+    for (i = meteors.length - 1; i >= 0; i--) {
+      var m = meteors[i];
+      m.y += m.v * dt; m.x += m.vx * dt;
+      if (m.x < m.pad) { m.x = m.pad; m.vx = Math.abs(m.vx); } else if (m.x > W - m.pad) { m.x = W - m.pad; m.vx = -Math.abs(m.vx); }
+      if (m.y >= groundY - m.r) { crash(m, i, t); if (state !== "running") return; }
+    }
+    for (i = particles.length - 1; i >= 0; i--) {
+      var p = particles[i]; p.life -= dt; if (p.life <= 0) { particles.splice(i, 1); continue; }
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 260 * dt; p.vx *= 0.985;
+    }
+    for (i = rings.length - 1; i >= 0; i--) { rings[i].life -= dt; if (rings[i].life <= 0) rings.splice(i, 1); }
+    for (i = beams.length - 1; i >= 0; i--) { beams[i].life -= dt; if (beams[i].life <= 0) beams.splice(i, 1); }
+    shake = Math.max(0, shake - dt); flash = Math.max(0, flash - dt * 2.2);
+    hudT -= dt; if (hudT <= 0) { hudT = 0.2; updateHud(); }
+    if (cfg.limit && t >= cfg.limit * 1000) gameOver("time");
+  }
+  function crash(m, idx, t) {
+    var groundY = H - GH;
+    meteors.splice(idx, 1);
+    crashes++; stats.misses++;
+    trials.push({ type: "miss", target: m.word, typed: "", spawnT: Math.round(m.spawnT), firstT: "", endT: Math.round(t), dur: "", keys: 0, bs: 0, lev: "" });
+    boom(m.x, groundY, 34, true);
+    if (!reduceMotion) shake = 0.4;
+    flash = 1;
+    if (buffer && m.word.indexOf(buffer) === 0 && !meteors.some(function (o) { return o.word.indexOf(buffer) === 0; })) {
+      stats.abandoned += attempt.chars;
+      keylog.push({ t: Math.round(t), key: "(auto-clear)", action: "abandon", buf: "" });
+      buffer = ""; inp.value = ""; attempt = { chars: 0, bs: 0, startT: null };
+    }
+    renderPips(); refreshInput();
+    if (crashes >= cfg.lives) gameOver("crashes");
+  }
+
+  /* ---------- typing ---------- */
+  function refreshInput() {
+    var ok = buffer && meteors.some(function (m) { return m.word.indexOf(buffer) === 0; });
+    inp.classList.toggle("ok", !!ok);
+    inp.classList.toggle("bad", !!buffer && !ok);
+  }
+  function logKey(t, key, action) { keylog.push({ t: Math.round(t), key: key, action: action, buf: buffer }); stats.keys++; }
+
+  function onInput() {
+    if (state !== "running") { inp.value = buffer; return; }
+    var t = nowMs(), raw = inp.value, submit = /\s/.test(raw);
+    var nv = raw.replace(/\s/g, "").toLowerCase();
+    var old = buffer, p = 0;
+    while (p < old.length && p < nv.length && old[p] === nv[p]) p++;
+    var dels = old.length - p, i;
+    for (i = 0; i < dels; i++) { buffer = old.slice(0, old.length - 1 - i); attempt.bs++; logKey(t, "Backspace", "del"); }
+    buffer = old.slice(0, p);
+    for (i = p; i < nv.length; i++) {
+      buffer += nv[i]; attempt.chars++;
+      if (attempt.startT == null) attempt.startT = t;
+      if (stats.firstKeyT == null) stats.firstKeyT = t;
+      logKey(t, nv[i], "add");
+    }
+    inp.value = buffer;
+    if (cfg.mode === "auto" && buffer) {
+      for (i = 0; i < meteors.length; i++) if (meteors[i].word === buffer) { hit(meteors[i], i, t); return; }
+    }
+    refreshInput();
+    if (submit) submitEntry(t);
+  }
+  function clearBuffer() {
+    if (state !== "running" || !buffer) return;
+    var t = nowMs(), n = buffer.length;
+    for (var i = 0; i < n; i++) { buffer = buffer.slice(0, -1); attempt.bs++; }
+    keylog.push({ t: Math.round(t), key: "Escape", action: "clear", buf: "" });
+    stats.keys++;
+    inp.value = ""; refreshInput();
+  }
+  function finishEntry(type, target, typed, d, t, spawnT) {
+    var tr = { type: type, target: target, typed: typed, spawnT: spawnT === undefined ? "" : Math.round(spawnT), firstT: attempt.startT == null ? "" : Math.round(attempt.startT), endT: Math.round(t), dur: attempt.startT == null ? "" : Math.round(t - attempt.startT), keys: attempt.chars, bs: attempt.bs, lev: d };
+    trials.push(tr);
+    stats.F += attempt.bs;
+    stats.IF += Math.max(0, attempt.chars - typed.length);
+    stats.entryChars += typed.length; stats.entryCount++; stats.lastEntryT = t;
+    attempt = { chars: 0, bs: 0, startT: null };
+    buffer = ""; inp.value = "";
+  }
+  function hit(m, idx, t) {
+    var groundY = H - GH;
+    stats.C += buffer.length; stats.hits++;
+    finishEntry("hit", m.word, buffer, 0, t, m.spawnT);
+    meteors.splice(idx, 1);
+    beams.push({ x0: W / 2, y0: groundY - 12, x1: m.x, y1: m.y, life: 0.18 });
+    turretA = Math.atan2(m.y - (groundY - 12), m.x - W / 2);
+    boom(m.x, m.y, 26, false);
+    refreshInput(); updateHud();
+  }
+  function submitEntry(t) {
+    if (!buffer) return;
+    for (var i = 0; i < meteors.length; i++) if (meteors[i].word === buffer) { hit(meteors[i], i, t); return; }
+    var best = "", bd = buffer.length;
+    meteors.forEach(function (m) { var d = lev(buffer, m.word); if (d < bd || best === "") { if (d <= bd) { bd = d; best = m.word; } } });
+    if (best === "") bd = buffer.length;
+    stats.INF += bd; stats.C += Math.max(0, buffer.length - bd); stats.errors++;
+    finishEntry("error", best, buffer, bd, t);
+    inp.classList.remove("err"); void inp.offsetWidth; inp.classList.add("err");
+    refreshInput(); updateHud();
+  }
+
+  inp.addEventListener("input", onInput);
+  inp.addEventListener("paste", function (e) { e.preventDefault(); });
+  inp.addEventListener("drop", function (e) { e.preventDefault(); });
+  inp.addEventListener("keydown", function (e) {
+    if (state !== "running") return;
+    if (e.key === " " || e.key === "Enter") { e.preventDefault(); if (buffer) { var t = nowMs(); logKey(t, e.key === " " ? "Space" : "Enter", "submit"); submitEntry(t); } }
+    else if (e.key === "Escape") { e.preventDefault(); clearBuffer(); }
+  });
+  inp.addEventListener("blur", function (e) {
+    if (state !== "running") return;
+    var to = e.relatedTarget;
+    if (to && to.tagName === "BUTTON") return;
+    setTimeout(function () { if (state === "running") inp.focus(); }, 0);
+  });
+  stageEl.addEventListener("pointerdown", function () { if (state === "running") inp.focus(); });
+  document.addEventListener("visibilitychange", function () { if (document.hidden) pauseGame(); });
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "Enter") return;
+    var tag = (e.target && e.target.tagName) || "";
+    if (tag === "BUTTON" || tag === "TEXTAREA") return;
+    if (state === "setup" && !$("setup").hidden) { e.preventDefault(); startGame(); }
+    else if (state === "paused") { e.preventDefault(); resumeGame(); }
+  });
+  $("startBtn").addEventListener("click", startGame);
+  $("pauseBtn").addEventListener("click", pauseGame);
+  $("resumeBtn").addEventListener("click", resumeGame);
+  $("againBtn").addEventListener("click", startGame);
+  $("settingsBtn").addEventListener("click", function () { state = "setup"; show("setup"); });
+
+  /* ---------- drawing ---------- */
+  function draw() {
+    var groundY = H - GH, tt = performance.now() / 1000, i, m;
+    ctx.clearRect(0, 0, W, H);
+    ctx.save();
+    if (shake > 0) ctx.translate((Math.random() - 0.5) * shake * 16, (Math.random() - 0.5) * shake * 16);
+
+    for (i = 0; i < stars.length; i++) {
+      var s = stars[i];
+      ctx.fillStyle = "rgba(235,230,218," + (0.3 + 0.5 * Math.sin(tt * 0.8 + s.p) * 0.5 + 0.25).toFixed(2) + ")";
+      ctx.fillRect(s.x * W, s.y * groundY, s.r, s.r);
+    }
+
+    // beams
+    for (i = 0; i < beams.length; i++) {
+      var b = beams[i];
+      ctx.strokeStyle = "rgba(94,234,212," + (b.life / 0.18).toFixed(2) + ")"; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(b.x0, b.y0); ctx.lineTo(b.x1, b.y1); ctx.stroke();
+    }
+
+    // locked target
+    var lock = null;
+    if (buffer && state !== "setup") meteors.forEach(function (o) { if (o.word.indexOf(buffer) === 0 && (!lock || o.y > lock.y)) lock = o; });
+
+    // meteors
+    ctx.font = cfg ? labelFont() : "12px monospace"; ctx.textBaseline = "middle"; ctx.textAlign = "left";
+    for (i = 0; i < meteors.length; i++) {
+      m = meteors[i];
+      var len = 64 + m.v * 0.5, ang = Math.atan2(m.v, m.vx), tx = m.x - Math.cos(ang) * len, ty = m.y - Math.sin(ang) * len;
+      var g = ctx.createLinearGradient(m.x, m.y, tx, ty);
+      g.addColorStop(0, "rgba(255,155,77,0.85)"); g.addColorStop(1, "rgba(255,155,77,0)");
+      ctx.strokeStyle = g; ctx.lineWidth = m.r * 1.5; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(tx, ty); ctx.stroke();
+
+      var rot = m.rot + tt * m.spin;
+      ctx.beginPath();
+      for (var k = 0; k < m.rock.length; k++) {
+        var a = rot + (k / m.rock.length) * 6.283, rr = m.r * m.rock[k];
+        ctx[k ? "lineTo" : "moveTo"](m.x + Math.cos(a) * rr, m.y + Math.sin(a) * rr);
+      }
+      ctx.closePath();
+      var rg = ctx.createRadialGradient(m.x - m.r * 0.3, m.y - m.r * 0.3, 1, m.x, m.y, m.r * 1.2);
+      rg.addColorStop(0, "#e6d6bd"); rg.addColorStop(1, "#8a6b52");
+      ctx.fillStyle = rg; ctx.fill();
+      ctx.strokeStyle = "rgba(255,155,77,0.9)"; ctx.lineWidth = 1.5; ctx.stroke();
+
+      // label
+      var danger = m.y > groundY * 0.72, isLock = (m === lock);
+      var bw = m.lw + 16, bh = cfg.fs + 10, bx = m.x - bw / 2, by = m.y + m.r + 8;
+      ctx.fillStyle = "rgba(7,10,19,0.78)"; ctx.fillRect(bx, by, bw, bh);
+      ctx.lineWidth = isLock ? 2 : 1;
+      ctx.strokeStyle = isLock ? "#5eead4" : (danger ? "rgba(255,95,118,0.9)" : "rgba(235,230,218,0.25)");
+      ctx.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+      var matched = (isLock ? buffer.length : 0), tx0 = m.x - m.lw / 2, ty0 = by + bh / 2 + 1;
+      var head = m.word.slice(0, matched), tail = m.word.slice(matched);
+      ctx.fillStyle = "#5eead4"; ctx.fillText(head, tx0, ty0);
+      ctx.fillStyle = danger ? "#ffb3bf" : "#ebe6da"; ctx.fillText(tail, tx0 + ctx.measureText(head).width, ty0);
+    }
+
+    // particles + rings
+    for (i = 0; i < particles.length; i++) {
+      var p = particles[i];
+      ctx.fillStyle = "rgba(" + p.c + "," + Math.min(1, p.life * 1.6).toFixed(2) + ")";
+      ctx.fillRect(p.x, p.y, 2.5, 2.5);
+    }
+    for (i = 0; i < rings.length; i++) {
+      var r = rings[i], f = 1 - r.life / r.max;
+      ctx.strokeStyle = "rgba(255,226,170," + (1 - f).toFixed(2) + ")"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(r.x, r.y, 6 + f * (r.big ? 60 : 38), 0, 6.283); ctx.stroke();
+    }
+
+    // ground, skyline, turret
+    if (flash > 0) { ctx.fillStyle = "rgba(255,120,80," + (flash * 0.28).toFixed(2) + ")"; ctx.fillRect(0, 0, W, H); }
+    var litFrac = cfg ? Math.max(0, 1 - crashes / cfg.lives) : 1;
+    ctx.fillStyle = "#070a13";
+    for (i = 0; i < skyline.length; i++) {
+      var bd = skyline[i];
+      ctx.fillStyle = "#0b1020"; ctx.fillRect(bd.x, groundY - bd.h, bd.w, bd.h + 2);
+      for (var q = 0; q < bd.wins.length; q++) {
+        var wn = bd.wins[q];
+        if (wn.th < litFrac) { ctx.fillStyle = "rgba(255,190,110,0.55)"; ctx.fillRect(bd.x + wn.x, groundY - bd.h + wn.y, 2, 2); }
+      }
+    }
+    ctx.fillStyle = "#070a13"; ctx.fillRect(0, groundY, W, GH);
+    ctx.fillStyle = "rgba(235,230,218,0.14)"; ctx.fillRect(0, groundY, W, 1);
+
+    var tgtA = lock ? Math.atan2(lock.y - (groundY - 12), lock.x - W / 2) : -Math.PI / 2;
+    turretA += (tgtA - turretA) * 0.25;
+    ctx.save(); ctx.translate(W / 2, groundY - 8); ctx.rotate(turretA);
+    ctx.fillStyle = "#cfd3e6"; ctx.fillRect(0, -3, 26, 6);
+    ctx.restore();
+    ctx.fillStyle = "#9ca2bb"; ctx.beginPath(); ctx.arc(W / 2, groundY - 2, 16, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = "#ff9b4d"; ctx.fillRect(W / 2 - 8, groundY - 6, 16, 2);
+    ctx.restore();
+  }
+
+  /* ---------- loop ---------- */
+  function frame() {
+    if (state === "running") {
+      var t = nowMs(), dt = (t - lastT) / 1000; lastT = t; dt = Math.max(0, Math.min(0.05, dt));
+      update(dt, t);
+    } else if (state === "setup" || state === "over") {
+      // let leftover particles settle
+      var d = 0.016;
+      particles = particles.filter(function (p) { p.life -= d; p.x += p.vx * d; p.y += p.vy * d; p.vy += 260 * d; return p.life > 0; });
+      rings = rings.filter(function (r) { r.life -= d; return r.life > 0; });
+      shake = Math.max(0, shake - d); flash = Math.max(0, flash - d * 2.2);
+    }
+    draw();
+    requestAnimationFrame(frame);
+  }
+
+  /* ---------- results ---------- */
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function q(v) { var s = String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+  function toCsv(rows) { return rows.map(function (r) { return r.map(q).join(","); }).join("\n"); }
+
+  function showResults(reason) {
+    var m = metrics(), s = stats;
+    $("resTitle").textContent = reason === "time" ? "Time is up" : "Ground reached";
+    $("resSub").textContent = cfg.pid + " · " + cfg.cond + " · seed " + cfg.seed + " · " + (reason === "time" ? "time limit reached" : crashes + " meteors hit the ground") + " · " + fmtTime(endT);
+    var tiles = [
+      ["Speed", m.wpm.toFixed(1), "wpm"], ["Adjusted speed", m.adj.toFixed(1), "wpm"],
+      ["Total error rate", pct(m.ter), "%"], ["Corrected errors", pct(m.cer), "%"], ["Uncorrected errors", pct(m.uer), "%"],
+      ["Destroyed", s.hits, "of " + (s.hits + s.misses)], ["Wrong entries", s.errors, ""],
+      ["Time per word", m.mean.toFixed(2), "s"], ["KSPC", m.kspc.toFixed(2), ""]
+    ];
+    $("tiles").innerHTML = tiles.map(function (t) { return '<div class="tile"><span>' + t[0] + "</span><b>" + t[1] + "</b><small>" + t[2] + "</small></div>"; }).join("");
+    var rows = trials.map(function (t, i) {
+      var label = t.type === "hit" ? "Destroyed" : t.type === "miss" ? "Crashed" : "Wrong entry";
+      return "<tr><td>" + (i + 1) + '</td><td class="mono">' + esc(t.target) + '</td><td class="mono">' + esc(t.typed) + '</td><td><span class="tag ' + t.type + '">' + label + "</span></td><td>" + (t.dur === "" ? "–" : (t.dur / 1000).toFixed(2)) + "</td><td>" + t.keys + "</td><td>" + t.bs + "</td></tr>";
+    });
+    $("logBody").innerHTML = rows.join("") || '<tr><td colspan="7">No words were entered.</td></tr>';
+    $("exportBox").value = ""; $("exportMsg").textContent = "";
+    $("results").scrollTop = 0;
+  }
+
+  function exportText(kind) {
+    var m = metrics(), s = stats, id = cfg.pid, cond = cfg.cond;
+    if (kind === "summary") {
+      return toCsv([
+        ["participant", "condition", "seed", "mode", "speed", "interval_s", "impacts_allowed", "word_min", "word_max", "word_px", "ramp", "duration_s", "words_destroyed", "words_crashed", "wrong_entries", "wpm", "adjusted_wpm", "total_error_rate", "corrected_error_rate", "uncorrected_error_rate", "kspc", "C", "INF", "IF", "F", "keystrokes", "abandoned_keystrokes", "mean_time_per_word_s"],
+        [id, cond, cfg.seed, cfg.mode, cfg.speed, cfg.interval, cfg.lives, cfg.wmin, cfg.wmax, cfg.fs, cfg.ramp, (endT / 1000).toFixed(2), s.hits, s.misses, s.errors, m.wpm.toFixed(2), m.adj.toFixed(2), m.ter.toFixed(4), m.cer.toFixed(4), m.uer.toFixed(4), m.kspc.toFixed(3), s.C, s.INF, s.IF, s.F, s.keys, s.abandoned, m.mean.toFixed(3)]
+      ]);
+    }
+    if (kind === "trials") {
+      return toCsv([["participant", "condition", "index", "outcome", "target", "typed", "spawn_ms", "first_key_ms", "end_ms", "time_to_type_ms", "keystrokes", "backspaces", "edit_distance"]].concat(
+        trials.map(function (t, i) { return [id, cond, i + 1, t.type, t.target, t.typed, t.spawnT, t.firstT, t.endT, t.dur, t.keys, t.bs, t.lev]; })));
+    }
+    return toCsv([["participant", "condition", "t_ms", "key", "action", "buffer_after"]].concat(
+      keylog.map(function (k) { return [id, cond, k.t, k.key, k.action, k.buf]; })));
+  }
+  document.querySelectorAll("[data-export]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var txt = exportText(b.getAttribute("data-export")), box = $("exportBox"), msg = $("exportMsg");
+      box.value = txt; box.focus(); box.select();
+      msg.textContent = "Selected below. Copy it if it was not copied automatically.";
+      try {
+        navigator.clipboard.writeText(txt).then(function () { msg.textContent = "Copied to clipboard."; }, function () {});
+      } catch (e) {}
+    });
+  });
+
+  /* ---------- boot ---------- */
+  loadCfg();
+  renderPips();
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>

@@ -1,0 +1,738 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#080e1b">
+<title>Word Defense Lab — Text Entry Experiment</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #080e1b;
+    --panel: #101a2b;
+    --panel2: #0c1423;
+    --line: #26364b;
+    --text: #edf5ff;
+    --muted: #92a4bc;
+    --cyan: #6ee7f9;
+    --cyan2: #22b8d3;
+    --orange: #ff9f5b;
+    --red: #ff627d;
+    --green: #80f0bd;
+  }
+  * { box-sizing: border-box; }
+  html, body { min-height: 100%; margin: 0; }
+  body {
+    background: radial-gradient(ellipse at 50% -20%, #172e48 0%, var(--bg) 55%);
+    color: var(--text);
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    letter-spacing: .01em;
+  }
+  button, input, select { font: inherit; }
+  button { cursor: pointer; }
+  .page { max-width: 1440px; margin: 0 auto; padding: 22px 26px 28px; }
+  .topbar { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:22px; }
+  .brand { display:flex; align-items:center; gap:13px; min-width:0; }
+  .brand-mark { width:42px; height:42px; display:grid; place-items:center; flex:none; border-radius:13px; background:linear-gradient(145deg,#143c54,#102138); border:1px solid #31576b; box-shadow:0 0 24px #1e9cba22; }
+  .brand-mark svg { width:24px; height:24px; }
+  .brand h1 { font-size:16px; letter-spacing:.13em; margin:0; font-weight:850; }
+  .brand p { color:var(--muted); margin:4px 0 0; font-size:11px; letter-spacing:.12em; text-transform:uppercase; }
+  .study-badge { border:1px solid #35516c; background:#102239a8; color:#b9d8ea; font-size:10px; font-weight:750; letter-spacing:.14em; text-transform:uppercase; border-radius:999px; padding:9px 12px; white-space:nowrap; }
+  .layout { display:grid; grid-template-columns:minmax(0,1fr) 310px; gap:18px; align-items:start; }
+  .panel { border:1px solid var(--line); background:linear-gradient(180deg, #101a2bfa, #0b1321f5); border-radius:18px; box-shadow:0 20px 50px #00000025; overflow:hidden; }
+  .arena-top { display:flex; align-items:center; justify-content:space-between; padding:16px 19px; border-bottom:1px solid #243247; gap:16px; }
+  .section-kicker { font-size:10px; color:var(--muted); letter-spacing:.17em; font-weight:800; text-transform:uppercase; }
+  .arena-title { font-size:14px; font-weight:800; margin-top:5px; letter-spacing:.02em; }
+  .live-state { display:flex; align-items:center; gap:8px; font-size:11px; color:#b4c6d9; }
+  .live-dot { width:7px; height:7px; border-radius:100%; background:#65778e; box-shadow:0 0 0 4px #65778e1d; }
+  .live-dot.active { background:var(--green); box-shadow:0 0 0 4px #80f0bd20,0 0 14px #80f0bd80; }
+  .stage-wrap { position:relative; background:#080f1d; min-height:420px; }
+  #gameCanvas { display:block; width:100%; height:clamp(390px, 57vw, 560px); outline:none; }
+  .stage-hud { pointer-events:none; position:absolute; inset:15px 17px auto; display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
+  .hud-chip { background:#091322ce; border:1px solid #263950; backdrop-filter:blur(8px); padding:8px 10px; border-radius:10px; min-width:82px; }
+  .hud-label { color:#8ea4bc; font-size:9px; font-weight:800; letter-spacing:.13em; text-transform:uppercase; }
+  .hud-value { margin-top:4px; font-size:17px; font-variant-numeric:tabular-nums; font-weight:800; }
+  .hud-right { display:flex; gap:8px; }
+  .stage-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:22px; background:linear-gradient(180deg,#07101bc4,#07101bdf); backdrop-filter:blur(4px); }
+  .overlay-card { text-align:center; width:min(460px,100%); border:1px solid #344b62; background:linear-gradient(155deg,#14253aef,#0a1424f5); border-radius:20px; padding:28px 27px 25px; box-shadow:0 20px 70px #0007; }
+  .overlay-icon { margin:0 auto 15px; width:55px; height:55px; border-radius:17px; display:grid; place-items:center; background:#123449; border:1px solid #2d7587; color:var(--cyan); font-size:24px; }
+  .overlay-card h2 { font-size:25px; line-height:1.1; margin:0; letter-spacing:-.035em; }
+  .overlay-card p { color:#a9bbcf; font-size:13px; line-height:1.65; margin:12px 0 19px; }
+  .keycap { display:inline-flex; align-items:center; justify-content:center; min-width:23px; padding:2px 6px; border:1px solid #43566e; border-bottom-width:2px; border-radius:5px; background:#142238; color:#dff8ff; font-size:10px; font-weight:800; }
+  .primary-btn { border:1px solid #74e8f7; background:linear-gradient(180deg,#7beafa,#38c5dd); color:#062033; border-radius:10px; padding:12px 18px; font-weight:850; font-size:12px; letter-spacing:.04em; box-shadow:0 7px 24px #1cc4de22; transition:transform .15s, filter .15s; }
+  .primary-btn:hover { filter:brightness(1.07); transform:translateY(-1px); }
+  .secondary-btn { border:1px solid #344961; color:#d8e6f4; background:#152238; border-radius:10px; padding:10px 13px; font-size:11px; font-weight:750; transition:background .15s; }
+  .secondary-btn:hover:not(:disabled) { background:#1b2b43; }
+  button:disabled { opacity:.38; cursor:not-allowed; }
+  .typing-console { padding:15px 18px 17px; border-top:1px solid #26364a; background:#0d1727; }
+  .console-top { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .console-label { color:var(--muted); font-size:10px; letter-spacing:.15em; text-transform:uppercase; font-weight:800; }
+  .console-hint { color:#6f849d; font-size:10px; }
+  .typing-line { margin-top:9px; display:flex; align-items:center; gap:10px; min-height:33px; }
+  .cursor { width:3px; height:22px; border-radius:3px; background:var(--cyan); box-shadow:0 0 12px #6ee7f9a3; flex:none; }
+  #typedBuffer { font-size:22px; font-weight:750; letter-spacing:.06em; min-width:0; overflow-wrap:anywhere; color:#effbff; }
+  #typedBuffer.invalid { color:var(--red); text-decoration:underline wavy #ff627d; text-underline-offset:5px; }
+  #typedBuffer.ready { color:var(--green); }
+  .console-status { margin-left:auto; font-size:10px; font-weight:800; letter-spacing:.08em; text-align:right; color:#7d94ad; }
+  .console-status.good { color:var(--green); }
+  .console-status.bad { color:var(--red); }
+  .arena-footer { display:flex; flex-wrap:wrap; gap:10px 18px; align-items:center; padding:12px 18px; border-top:1px solid #1f2d40; color:#758ba4; font-size:10px; }
+  .legend-item { display:flex; gap:7px; align-items:center; }
+  .legend-dot { width:6px; height:6px; border-radius:50%; background:var(--orange); }
+  .legend-line { width:17px; border-top:1px dashed var(--cyan); }
+  .sidebar { display:flex; flex-direction:column; gap:15px; }
+  .side-panel { padding:17px; }
+  .side-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:15px; }
+  .side-head h3 { font-size:12px; margin:0; letter-spacing:.06em; }
+  .micro-label { color:#7e94ad; font-size:9px; letter-spacing:.13em; text-transform:uppercase; font-weight:800; }
+  .metrics-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+  .metric { border:1px solid #29394e; background:#0b1423; border-radius:12px; padding:13px 12px 12px; min-width:0; }
+  .metric.primary { grid-column:1/-1; background:linear-gradient(120deg,#102b3a,#0d1c2b); border-color:#2a5e6d; }
+  .metric-label { color:#8da1b9; font-size:9px; letter-spacing:.12em; text-transform:uppercase; font-weight:800; }
+  .metric-number { margin-top:8px; font-size:27px; letter-spacing:-.045em; font-weight:850; font-variant-numeric:tabular-nums; }
+  .metric.primary .metric-number { font-size:35px; color:#a5f3fc; }
+  .metric-unit { color:#7d93aa; font-size:10px; margin-left:4px; letter-spacing:0; font-weight:700; }
+  .metric-sub { margin-top:5px; color:#7890a8; font-size:10px; line-height:1.4; }
+  .track { height:5px; background:#1d2c40; overflow:hidden; border-radius:99px; margin-top:10px; }
+  .track-fill { height:100%; width:0; border-radius:99px; background:linear-gradient(90deg,#26b8d3,#8beafa); transition:width .2s; }
+  .field { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+  .field label { color:#91a5bc; font-size:10px; font-weight:750; letter-spacing:.08em; text-transform:uppercase; }
+  .field input, .field select { width:100%; border:1px solid #2b3d53; outline:none; background:#0a1423; color:#edf6ff; border-radius:9px; padding:10px 11px; font-size:12px; }
+  .field input:focus, .field select:focus { border-color:#4c9eb1; box-shadow:0 0 0 3px #35bfd51a; }
+  .field input::placeholder { color:#546a83; }
+  .field-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .actions { display:flex; flex-direction:column; gap:8px; margin-top:16px; }
+  .actions button { width:100%; }
+  .session-note { margin-top:13px; color:#748ba4; font-size:10px; line-height:1.55; }
+  .status-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #203045; font-size:11px; }
+  .status-row:last-child { border-bottom:0; padding-bottom:0; }
+  .status-row span:first-child { color:#8ca1b8; }
+  .status-row strong { color:#e7f2ff; font-size:11px; font-variant-numeric:tabular-nums; }
+  .threats { display:flex; gap:5px; }
+  .threat { width:12px; height:6px; background:#34465b; border-radius:3px; }
+  .threat.lost { background:var(--red); box-shadow:0 0 8px #ff627d44; }
+  .method { padding:14px 17px; color:#8499b1; font-size:10px; line-height:1.65; }
+  .method strong { color:#c5d5e5; }
+  .method-title { margin-bottom:5px; font-weight:850; color:#b1c4d8; text-transform:uppercase; letter-spacing:.13em; font-size:9px; }
+  .toast { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); pointer-events:none; opacity:0; color:#fff; background:#a6334d; border:1px solid #ff7e94; border-radius:99px; padding:8px 13px; font-size:11px; font-weight:850; letter-spacing:.08em; transition:opacity .15s; white-space:nowrap; }
+  .toast.show { opacity:1; }
+  .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+  @media (max-width: 980px) { .layout { grid-template-columns:minmax(0,1fr) 280px; gap:12px; } .page { padding:18px 14px 24px; } #gameCanvas { height:460px; } }
+  @media (max-width: 760px) { .layout { grid-template-columns:1fr; } .sidebar { display:grid; grid-template-columns:1fr 1fr; align-items:start; } .metrics-panel { grid-row:span 2; } #gameCanvas { height:420px; } .topbar { margin-bottom:14px; } }
+  @media (max-width: 520px) { .page { padding:12px 9px 18px; } .study-badge { display:none; } .brand h1 { font-size:14px; } .sidebar { display:flex; } #gameCanvas { height:390px; } .arena-top { padding:13px; } .stage-hud { inset:10px 10px auto; } .hud-chip { min-width:65px; padding:7px 8px; } .hud-value { font-size:15px; } .overlay-card { padding:22px 16px 19px; } .overlay-card h2 { font-size:22px; } .console-hint { display:none; } .console-status { max-width:120px; line-height:1.35; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M13.4 2.8 5.2 13h5.4l-.7 8.2L19 10.5h-5.7l.1-7.7Z" stroke="#79ecf8" stroke-width="1.6" stroke-linejoin="round"/><path d="M4 4.7 2.7 6M20.8 16.5l-1.4 1.4" stroke="#ffad6d" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </div>
+      <div><h1>WORD DEFENSE <span style="color:#6ee7f9">/ LAB</span></h1><p>Text entry experiment environment</p></div>
+    </div>
+    <div class="study-badge">Keyboard study · Local session</div>
+  </header>
+
+  <main class="layout">
+    <section class="panel arena-panel" aria-label="Meteor typing game">
+      <div class="arena-top">
+        <div><div class="section-kicker">Sector 07 / Earth perimeter</div><div class="arena-title">Intercept incoming words</div></div>
+        <div class="live-state"><span id="liveDot" class="live-dot"></span><span id="gameStateLabel">STANDBY</span></div>
+      </div>
+      <div class="stage-wrap">
+        <canvas id="gameCanvas" aria-label="Meteors with words fall toward the ground. Type a displayed word and press Space to destroy it."></canvas>
+        <div class="stage-hud">
+          <div class="hud-chip"><div class="hud-label">Score</div><div id="scoreHud" class="hud-value">0000</div></div>
+          <div class="hud-right">
+            <div class="hud-chip"><div class="hud-label">Time left</div><div id="timeHud" class="hud-value">01:00</div></div>
+            <div class="hud-chip"><div class="hud-label">Impacts</div><div id="impactHud" class="hud-value">0 / 5</div></div>
+          </div>
+        </div>
+        <div id="startOverlay" class="stage-overlay">
+          <div class="overlay-card">
+            <div class="overlay-icon" aria-hidden="true">✦</div>
+            <h2>Defend the horizon.</h2>
+            <p>Every meteor carries a word. Type the word and press <span class="keycap">SPACE</span> to intercept it. Five ground impacts end the run. Accuracy and speed are recorded throughout.</p>
+            <button id="overlayStartBtn" class="primary-btn">START EXPERIMENT&nbsp; ↗</button>
+          </div>
+        </div>
+        <div id="endOverlay" class="stage-overlay" style="display:none">
+          <div class="overlay-card">
+            <div class="overlay-icon" id="endIcon" aria-hidden="true">◈</div>
+            <h2 id="endTitle">Session complete</h2>
+            <p id="endMessage">Your text-entry results are ready.</p>
+            <button id="replayBtn" class="primary-btn">RUN AGAIN&nbsp; ↗</button>
+          </div>
+        </div>
+        <div id="errorToast" class="toast" role="status">INPUT MISMATCH</div>
+      </div>
+      <div class="typing-console" aria-live="polite">
+        <div class="console-top"><span class="console-label">Target input</span><span class="console-hint">TYPE WORD · THEN SPACE TO FIRE</span></div>
+        <div class="typing-line"><span class="cursor" aria-hidden="true"></span><span id="typedBuffer" aria-label="Current typed word"></span><span id="inputStatus" class="console-status">AWAITING INPUT</span></div>
+      </div>
+      <div class="arena-footer">
+        <span class="legend-item"><span class="legend-dot"></span> Incoming meteor</span>
+        <span class="legend-item"><span class="legend-line"></span> Target lock</span>
+        <span>⌫ Backspace corrects input · Esc clears it</span>
+      </div>
+    </section>
+
+    <aside class="sidebar" aria-label="Experiment controls and metrics">
+      <section class="panel side-panel metrics-panel">
+        <div class="side-head"><h3>Live performance</h3><span class="micro-label">Realtime</span></div>
+        <div class="metrics-grid">
+          <div class="metric primary"><div class="metric-label">Net typing speed</div><div class="metric-number"><span id="netWpm">0.0</span><span class="metric-unit">WPM</span></div><div class="metric-sub">Completed text, adjusted for error keypresses</div></div>
+          <div class="metric"><div class="metric-label">Accuracy</div><div class="metric-number" id="accuracy">100<span class="metric-unit">%</span></div><div class="track"><div class="track-fill" id="accuracyBar"></div></div></div>
+          <div class="metric"><div class="metric-label">Error rate</div><div class="metric-number" id="errorRate">0.0<span class="metric-unit">%</span></div><div class="metric-sub"><span id="errorCount">0</span> errors recorded</div></div>
+          <div class="metric"><div class="metric-label">Words cleared</div><div class="metric-number" id="wordsCleared">0</div><div class="metric-sub"><span id="charsCleared">0</span> text characters</div></div>
+          <div class="metric"><div class="metric-label">Gross speed</div><div class="metric-number" id="grossWpm">0.0<span class="metric-unit">WPM</span></div><div class="metric-sub">Before error adjustment</div></div>
+        </div>
+      </section>
+
+      <section class="panel side-panel">
+        <div class="side-head"><h3>Study setup</h3><span class="micro-label">Metadata</span></div>
+        <div class="field"><label for="participant">Participant code</label><input id="participant" type="text" maxlength="40" placeholder="e.g. P014 (optional)" autocomplete="off"></div>
+        <div class="field"><label for="condition">Condition / note</label><input id="condition" type="text" maxlength="60" placeholder="e.g. baseline, device A" autocomplete="off"></div>
+        <div class="field-row">
+          <div class="field"><label for="difficulty">Meteor pace</label><select id="difficulty"><option value="calm">Calm</option><option value="standard" selected>Standard</option><option value="storm">Storm</option></select></div>
+          <div class="field"><label for="duration">Session length</label><select id="duration"><option value="60" selected>60 sec</option><option value="120">120 sec</option><option value="180">180 sec</option><option value="0">No limit</option></select></div>
+        </div>
+        <div class="actions">
+          <button id="startBtn" class="primary-btn">START SESSION&nbsp; ↗</button>
+          <button id="pauseBtn" class="secondary-btn" disabled>PAUSE SESSION</button>
+          <button id="exportBtn" class="secondary-btn" disabled>↓&nbsp; EXPORT SESSION CSV</button>
+        </div>
+        <div class="session-note">Export includes event-level records and a session summary. No data is uploaded; the CSV is generated in this browser.</div>
+      </section>
+
+      <section class="panel side-panel">
+        <div class="side-head"><h3>Session status</h3><span class="micro-label">Run monitor</span></div>
+        <div class="status-row"><span>Session phase</span><strong id="statusPhase">Ready</strong></div>
+        <div class="status-row"><span>Ground impacts</span><div class="threats" aria-label="Impact limit"><i class="threat"></i><i class="threat"></i><i class="threat"></i><i class="threat"></i><i class="threat"></i></div></div>
+        <div class="status-row"><span>Input keypresses</span><strong id="keyCount">0</strong></div>
+        <div class="status-row"><span>Backspaces</span><strong id="backspaceCount">0</strong></div>
+      </section>
+
+      <section class="panel method">
+        <div class="method-title">Metric definitions</div>
+        <div><strong>Gross WPM</strong> = completed word characters plus spaces ÷ 5 ÷ active minutes.</div>
+        <div><strong>Net WPM</strong> = (completed characters − error keypresses) ÷ 5 ÷ active minutes, floored at zero.</div>
+        <div><strong>Error rate</strong> = error keypresses ÷ letter/space keypresses × 100. Backspaces are tracked separately.</div>
+      </section>
+    </aside>
+  </main>
+</div>
+<script>
+(() => {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const canvas = $('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const wordsByInitial = {
+    a:['apple','anchor','arrow','amber','artist','action','active'],
+    b:['bridge','beacon','bright','button','basket','breeze','border'],
+    c:['candle','cloud','copper','circle','coffee','castle','crystal'],
+    d:['drift','dragon','delta','dinner','distant','dream','detail'],
+    e:['ember','engine','effort','echo','earth','energy','evolve'],
+    f:['forest','flame','flower','flight','future','fabric','frozen'],
+    g:['galaxy','garden','gentle','golden','guitar','glance','growth'],
+    h:['harbor','hidden','helmet','humble','honest','hollow','horizon'],
+    i:['island','inside','impact','ivory','invite','invent','ignore'],
+    j:['jungle','journey','jacket','joyful','jigsaw','junior','jewel'],
+    k:['kernel','kitten','kingdom','keeper','kindle','kitten','kettle'],
+    l:['lantern','little','ladder','liquid','listen','linear','lively'],
+    m:['marble','meadow','mirror','motion','magnet','memory','market'],
+    n:['nectar','nature','number','normal','notice','native','narrow'],
+    o:['orbit','orange','ocean','office','origin','object','option'],
+    p:['planet','purple','pencil','puzzle','pocket','people','phrase'],
+    q:['quartz','quiet','queen','quick','quirky','quota','query'],
+    r:['river','rocket','random','reason','rescue','rhythm','return'],
+    s:['silver','signal','sunset','system','simple','shadow','stable'],
+    t:['thunder','travel','timber','tunnel','ticket','thread','target'],
+    u:['umber','unique','useful','urgent','united','update','unlock'],
+    v:['velvet','vision','violet','voyage','valley','volume','vessel'],
+    w:['willow','window','winter','wonder','wealth','whisper','worthy'],
+    x:['xenon','xylem','xerox'],
+    y:['yellow','yarn','yield','young','yonder','yearly','youth'],
+    z:['zephyr','zipper','zero','zebra','zigzag','zodiac','zenith']
+  };
+  const profiles = {
+    calm: { minSpeed: 30, maxSpeed: 47, spawnMs: 2350, label: 'Calm' },
+    standard: { minSpeed: 42, maxSpeed: 62, spawnMs: 1750, label: 'Standard' },
+    storm: { minSpeed: 56, maxSpeed: 79, spawnMs: 1300, label: 'Storm' }
+  };
+  let W = 0, H = 0, dpr = 1, groundY = 0;
+  let stars = [];
+  let meteors = [], explosions = [], events = [];
+  let state = 'ready';
+  let lastFrame = 0, spawnAccumulator = 0, nextMeteorId = 1;
+  let sessionStartMs = 0, pauseStartMs = 0, pausedTotalMs = 0, endedAtMs = 0;
+  let durationLimitSec = 60;
+  let score = 0, misses = 0, correctWords = 0, correctChars = 0;
+  let errorKeypresses = 0, totalInputKeys = 0, backspaces = 0;
+  let inputBuffer = '', lockId = null;
+  let toastTimer = null;
+  let sessionParticipant = '', sessionCondition = '', sessionDifficulty = 'standard';
+  let reduceMotion = false;
+  try { reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) {}
+
+  function resizeCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = Math.max(320, rect.width);
+    H = Math.max(320, rect.height);
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    groundY = H - 47;
+    stars = Array.from({length: Math.round(W * H / 6200)}, () => ({
+      x: Math.random() * W, y: Math.random() * H, r: Math.random() * 1.3 + .25,
+      alpha: Math.random() * .45 + .12, phase: Math.random() * 6.28
+    }));
+    drawScene(0);
+  }
+  window.addEventListener('resize', resizeCanvas);
+
+  function elapsedMs(now = Date.now()) {
+    if (!sessionStartMs) return 0;
+    const end = (state === 'finished' || state === 'ready') ? (endedAtMs || now) : now;
+    const openPause = state === 'paused' ? Math.max(0, now - pauseStartMs) : 0;
+    return Math.max(0, end - sessionStartMs - pausedTotalMs - openPause);
+  }
+  function metrics(now = Date.now()) {
+    const mins = Math.max(elapsedMs(now) / 60000, 1 / 3600);
+    const gross = correctChars / 5 / mins;
+    const net = Math.max(0, (correctChars - errorKeypresses) / 5 / mins);
+    const errPct = totalInputKeys > 0 ? 100 * errorKeypresses / totalInputKeys : 0;
+    return { grossWpm: gross, netWpm: net, errorRate: errPct, accuracy: 100 - errPct, elapsedSec: elapsedMs(now) / 1000 };
+  }
+  function selectedProfile() { return profiles[sessionDifficulty] || profiles.standard; }
+  function liveMeteor(id) { return meteors.find(m => m.id === id) || null; }
+  function currentLock() { return lockId === null ? null : liveMeteor(lockId); }
+  function isPrefixValid() {
+    if (!inputBuffer) return true;
+    const target = currentLock();
+    return !!target && target.word.startsWith(inputBuffer);
+  }
+  function exactTarget() {
+    const target = currentLock();
+    return target && inputBuffer === target.word ? target : null;
+  }
+  function logEvent(type, extra = {}) {
+    const now = Date.now();
+    const m = metrics(now);
+    const targetWord = extra.word !== undefined ? extra.word : ((currentLock() && currentLock().word) || '');
+    events.push({
+      session_id: sessionParticipant || 'anonymous', participant_code: sessionParticipant,
+      condition: sessionCondition, difficulty: sessionDifficulty,
+      duration_limit_s: durationLimitSec || 'unlimited', event_type: type,
+      timestamp_iso: new Date(now).toISOString(), elapsed_s: Number(m.elapsedSec.toFixed(3)),
+      word: targetWord, input_buffer: extra.input !== undefined ? extra.input : inputBuffer,
+      detail: extra.detail || '', score, words_cleared: correctWords, completed_chars: correctChars,
+      error_keypresses: errorKeypresses, total_input_keys: totalInputKeys, backspaces,
+      ground_impacts: misses, net_wpm: Number(m.netWpm.toFixed(3)), gross_wpm: Number(m.grossWpm.toFixed(3)),
+      error_rate_pct: Number(m.errorRate.toFixed(3)), accuracy_pct: Number(m.accuracy.toFixed(3)), phase: state
+    });
+    $('exportBtn').disabled = events.length === 0;
+  }
+  function chooseWord() {
+    const usedInitials = new Set(meteors.map(m => m.word[0]));
+    const available = Object.keys(wordsByInitial).filter(letter => !usedInitials.has(letter));
+    if (!available.length) return null;
+    const initial = available[Math.floor(Math.random() * available.length)];
+    const options = wordsByInitial[initial];
+    const usedWords = new Set(meteors.map(m => m.word));
+    const candidates = options.filter(w => !usedWords.has(w));
+    return (candidates.length ? candidates : options)[Math.floor(Math.random() * (candidates.length || options.length))];
+  }
+  function spawnMeteor() {
+    const word = chooseWord();
+    if (!word) return false;
+    const profile = selectedProfile();
+    let x = W * (.12 + Math.random() * .76);
+    for (let attempt = 0; attempt < 12; attempt++) {
+      const candidate = 54 + Math.random() * Math.max(1, W - 108);
+      const overlap = meteors.some(m => Math.abs(m.x - candidate) < 95 && Math.abs(m.y + 30) < 130);
+      if (!overlap) { x = candidate; break; }
+    }
+    const m = {
+      id: nextMeteorId++, word, x, y: -30 - Math.random() * 80,
+      speed: profile.minSpeed + Math.random() * (profile.maxSpeed - profile.minSpeed),
+      phase: Math.random() * 6.28, radius: 7 + Math.random() * 2, bornAt: Date.now()
+    };
+    meteors.push(m);
+    logEvent('meteor_spawn', {word, detail: `speed_px_s=${m.speed.toFixed(1)}`});
+    return true;
+  }
+  function destroyMeteor(meteor) {
+    const idx = meteors.findIndex(m => m.id === meteor.id);
+    if (idx < 0) return;
+    meteors.splice(idx, 1);
+    correctWords++;
+    correctChars += meteor.word.length + 1; // include the separator typed to submit the word
+    score += 100 + Math.max(0, Math.round((groundY - meteor.y) / 8));
+    explosions.push({x: meteor.x, y: meteor.y, age: 0, maxAge: .58, color: '#74f0fa', particles: Array.from({length: reduceMotion ? 5 : 15}, () => ({
+      angle: Math.random() * Math.PI * 2, speed: 38 + Math.random() * 125, size: 1 + Math.random() * 2.2
+    }))});
+    if (lockId === meteor.id) { inputBuffer = ''; lockId = null; }
+    logEvent('word_intercepted', {word: meteor.word, input: meteor.word + ' '});
+    $('scoreHud').textContent = String(score).padStart(4, '0');
+    updateUI();
+  }
+  function meteorMissed(meteor) {
+    misses++;
+    const idx = meteors.findIndex(m => m.id === meteor.id);
+    if (idx >= 0) meteors.splice(idx, 1);
+    explosions.push({x: meteor.x, y: groundY, age: 0, maxAge: .7, color: '#ff687f', particles: Array.from({length: reduceMotion ? 6 : 18}, () => ({angle: Math.random() * Math.PI * 2, speed: 25 + Math.random() * 95, size: 1 + Math.random() * 2.5}))});
+    if (lockId === meteor.id) { inputBuffer = ''; lockId = null; }
+    logEvent('ground_impact', {word: meteor.word, detail: `impact_${misses}_of_5`});
+    updateUI();
+    if (misses >= 5) finishGame('impacts');
+  }
+  function showErrorToast(text = 'INPUT MISMATCH') {
+    const toast = $('errorToast');
+    toast.textContent = text;
+    toast.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 650);
+  }
+  function clearBuffer(reason = 'clear') {
+    if (inputBuffer.length) logEvent('input_cleared', {input: inputBuffer, detail: reason});
+    inputBuffer = '';
+    lockId = null;
+    updateInputDisplay();
+  }
+  function onLetter(letter) {
+    totalInputKeys++;
+    const ch = letter.toLowerCase();
+    if (!inputBuffer) {
+      const choices = meteors.filter(m => m.word[0] === ch).sort((a,b) => b.y - a.y);
+      if (!choices.length) {
+        inputBuffer = ch;
+        errorKeypresses++;
+        logEvent('invalid_keypress', {input: inputBuffer, detail: `no_active_word_starts_with_${ch}`});
+        showErrorToast('NO WORD STARTS WITH “' + ch.toUpperCase() + '”');
+        updateUI(); updateInputDisplay(); return;
+      }
+      lockId = choices[0].id;
+      inputBuffer = ch;
+      logEvent('target_acquired', {word: choices[0].word, input: inputBuffer});
+    } else {
+      inputBuffer += ch;
+      const target = currentLock();
+      if (!target || !target.word.startsWith(inputBuffer)) {
+        errorKeypresses++;
+        logEvent('invalid_keypress', {input: inputBuffer, detail: target ? 'character_breaks_target_prefix' : 'target_no_longer_active'});
+        showErrorToast('INPUT MISMATCH');
+      }
+    }
+    updateInputDisplay(); updateUI();
+  }
+  function onSpace() {
+    totalInputKeys++;
+    const target = exactTarget();
+    if (target) {
+      destroyMeteor(target);
+      updateInputDisplay();
+      return;
+    }
+    if (inputBuffer && isPrefixValid()) {
+      errorKeypresses++;
+      logEvent('invalid_submission', {input: inputBuffer, detail: 'space_before_word_complete'});
+      showErrorToast('WORD INCOMPLETE');
+    } else if (inputBuffer) {
+      logEvent('invalid_submission', {input: inputBuffer, detail: 'already_counted_invalid_prefix'});
+    } else {
+      errorKeypresses++;
+      logEvent('invalid_submission', {input: '', detail: 'space_without_target'});
+      showErrorToast('NO TARGET SELECTED');
+    }
+    inputBuffer = ''; lockId = null;
+    updateInputDisplay(); updateUI();
+  }
+  document.addEventListener('keydown', (e) => {
+    const tag = (e.target && e.target.tagName || '').toUpperCase();
+    if (['INPUT','SELECT','TEXTAREA'].includes(tag) || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (state === 'ready' && e.key === 'Enter') { e.preventDefault(); startGame(); return; }
+    if (state !== 'running') return;
+    if (/^[a-zA-Z]$/.test(e.key)) { e.preventDefault(); onLetter(e.key); return; }
+    if (e.key === ' ') { e.preventDefault(); onSpace(); return; }
+    if (e.key === 'Backspace') {
+      e.preventDefault();
+      if (inputBuffer.length) {
+        inputBuffer = inputBuffer.slice(0, -1); backspaces++;
+        if (!inputBuffer) lockId = null;
+        logEvent('backspace', {input: inputBuffer});
+        updateInputDisplay(); updateUI();
+      }
+      return;
+    }
+    if (e.key === 'Escape') { e.preventDefault(); clearBuffer('escape'); }
+  });
+
+  function updateInputDisplay() {
+    const bufferEl = $('typedBuffer');
+    const statusEl = $('inputStatus');
+    bufferEl.textContent = inputBuffer || '· · ·';
+    const target = currentLock();
+    bufferEl.classList.toggle('invalid', !!inputBuffer && !isPrefixValid());
+    bufferEl.classList.toggle('ready', !!exactTarget());
+    statusEl.className = 'console-status';
+    if (state === 'ready') { statusEl.textContent = 'AWAITING INPUT'; }
+    else if (state === 'paused') { statusEl.textContent = 'SESSION PAUSED'; }
+    else if (state !== 'running') { statusEl.textContent = 'SESSION ENDED'; }
+    else if (!inputBuffer) { statusEl.textContent = 'AWAITING INPUT'; }
+    else if (!isPrefixValid()) { statusEl.textContent = 'BACKSPACE TO CORRECT'; statusEl.classList.add('bad'); }
+    else if (exactTarget()) { statusEl.textContent = 'WORD COMPLETE · SPACE'; statusEl.classList.add('good'); }
+    else { statusEl.textContent = target ? `TARGET: ${target.word.toUpperCase()}` : 'NO MATCH'; }
+  }
+  function updateUI() {
+    const m = metrics();
+    $('netWpm').textContent = m.netWpm.toFixed(1);
+    $('grossWpm').innerHTML = `${m.grossWpm.toFixed(1)}<span class="metric-unit">WPM</span>`;
+    $('accuracy').innerHTML = `${m.accuracy.toFixed(1)}<span class="metric-unit">%</span>`;
+    $('errorRate').innerHTML = `${m.errorRate.toFixed(1)}<span class="metric-unit">%</span>`;
+    $('errorCount').textContent = errorKeypresses;
+    $('wordsCleared').textContent = correctWords;
+    $('charsCleared').textContent = correctChars;
+    $('accuracyBar').style.width = `${Math.max(0, Math.min(100, m.accuracy))}%`;
+    $('keyCount').textContent = totalInputKeys;
+    $('backspaceCount').textContent = backspaces;
+    $('impactHud').textContent = `${misses} / 5`;
+    $('timeHud').textContent = timeLabel();
+    $('statusPhase').textContent = ({ready:'Ready',running:'Running',paused:'Paused',finished:'Finished'})[state] || state;
+    const threatEls = document.querySelectorAll('.threat');
+    threatEls.forEach((el,i) => el.classList.toggle('lost', i < misses));
+    $('gameStateLabel').textContent = ({ready:'STANDBY',running:'LIVE INTERCEPT',paused:'PAUSED',finished:'SESSION ENDED'})[state] || state.toUpperCase();
+    $('liveDot').classList.toggle('active', state === 'running');
+    $('pauseBtn').disabled = !(state === 'running' || state === 'paused');
+    $('pauseBtn').textContent = state === 'paused' ? 'RESUME SESSION' : 'PAUSE SESSION';
+    const settingsDisabled = state === 'running' || state === 'paused';
+    ['participant','condition','difficulty','duration'].forEach(id => $(id).disabled = settingsDisabled);
+    $('startBtn').disabled = settingsDisabled;
+    $('startBtn').textContent = state === 'finished' ? 'NEW SESSION ↗' : state === 'ready' ? 'START SESSION ↗' : 'SESSION ACTIVE';
+    $('exportBtn').disabled = events.length === 0;
+    updateInputDisplay();
+  }
+  function timeLabel() {
+    if (!sessionStartMs) return durationLimitSec ? `${String(Math.floor(durationLimitSec/60)).padStart(2,'0')}:${String(durationLimitSec%60).padStart(2,'0')}` : '∞';
+    if (!durationLimitSec) return '∞';
+    const remaining = Math.max(0, durationLimitSec - Math.floor(elapsedMs() / 1000));
+    return `${String(Math.floor(remaining/60)).padStart(2,'0')}:${String(remaining%60).padStart(2,'0')}`;
+  }
+  function setOverlayVisibility(which) {
+    $('startOverlay').style.display = which === 'start' ? 'flex' : 'none';
+    $('endOverlay').style.display = which === 'end' ? 'flex' : 'none';
+  }
+  function startGame() {
+    if (state === 'running' || state === 'paused') return;
+    sessionParticipant = $('participant').value.trim();
+    sessionCondition = $('condition').value.trim();
+    sessionDifficulty = $('difficulty').value;
+    durationLimitSec = Number($('duration').value);
+    meteors = []; explosions = []; events = [];
+    spawnAccumulator = 0; nextMeteorId = 1;
+    score = 0; misses = 0; correctWords = 0; correctChars = 0;
+    errorKeypresses = 0; totalInputKeys = 0; backspaces = 0;
+    inputBuffer = ''; lockId = null;
+    pausedTotalMs = 0; pauseStartMs = 0; endedAtMs = 0;
+    sessionStartMs = Date.now(); lastFrame = performance.now(); state = 'running';
+    $('scoreHud').textContent = '0000';
+    setOverlayVisibility('none');
+    logEvent('session_start', {detail: `duration=${durationLimitSec || 'unlimited'}; pace=${sessionDifficulty}`});
+    spawnMeteor(); spawnAccumulator = 0;
+    updateUI();
+    canvas.focus({preventScroll:true});
+  }
+  function togglePause() {
+    if (state === 'running') {
+      state = 'paused'; pauseStartMs = Date.now(); logEvent('session_paused');
+    } else if (state === 'paused') {
+      pausedTotalMs += Date.now() - pauseStartMs; pauseStartMs = 0; state = 'running'; lastFrame = performance.now(); logEvent('session_resumed');
+    }
+    updateUI();
+  }
+  function finishGame(reason) {
+    if (state === 'finished') return;
+    endedAtMs = Date.now(); state = 'finished';
+    logEvent('session_end', {detail: reason});
+    const m = metrics(endedAtMs);
+    const durationText = `${m.elapsedSec.toFixed(1)} active seconds`;
+    if (reason === 'impacts') {
+      $('endTitle').textContent = 'Perimeter breached';
+      $('endIcon').textContent = '↯';
+      $('endMessage').textContent = `Five meteors reached the ground in ${durationText}. You cleared ${correctWords} words at ${m.netWpm.toFixed(1)} net WPM with a ${m.errorRate.toFixed(1)}% error rate. Export the session CSV for analysis.`;
+    } else {
+      $('endTitle').textContent = 'Session complete';
+      $('endIcon').textContent = '✦';
+      $('endMessage').textContent = `Time is up after ${durationText}. You cleared ${correctWords} words at ${m.netWpm.toFixed(1)} net WPM with a ${m.errorRate.toFixed(1)}% error rate. Export the session CSV for analysis.`;
+    }
+    setOverlayVisibility('end');
+    logEvent('session_summary', {detail: `end_reason=${reason}`});
+    updateUI();
+  }
+  $('startBtn').addEventListener('click', startGame);
+  $('overlayStartBtn').addEventListener('click', startGame);
+  $('replayBtn').addEventListener('click', startGame);
+  $('pauseBtn').addEventListener('click', togglePause);
+  $('exportBtn').addEventListener('click', exportCSV);
+
+  function csvEscape(value) {
+    const s = value === null || value === undefined ? '' : String(value);
+    return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+  function exportCSV() {
+    if (!events.length) return;
+    const now = Date.now();
+    const m = metrics(now);
+    const finalRow = {
+      session_id: sessionParticipant || 'anonymous', participant_code: sessionParticipant,
+      condition: sessionCondition, difficulty: sessionDifficulty,
+      duration_limit_s: durationLimitSec || 'unlimited', event_type: 'export_snapshot',
+      timestamp_iso: new Date(now).toISOString(), elapsed_s: Number(m.elapsedSec.toFixed(3)),
+      word: '', input_buffer: inputBuffer, detail: `phase=${state}`,
+      score, words_cleared: correctWords, completed_chars: correctChars,
+      error_keypresses: errorKeypresses, total_input_keys: totalInputKeys, backspaces,
+      ground_impacts: misses, net_wpm: Number(m.netWpm.toFixed(3)), gross_wpm: Number(m.grossWpm.toFixed(3)),
+      error_rate_pct: Number(m.errorRate.toFixed(3)), accuracy_pct: Number(m.accuracy.toFixed(3)), phase: state
+    };
+    const rows = [...events, finalRow];
+    const columns = ['session_id','participant_code','condition','difficulty','duration_limit_s','event_type','timestamp_iso','elapsed_s','word','input_buffer','detail','score','words_cleared','completed_chars','error_keypresses','total_input_keys','backspaces','ground_impacts','net_wpm','gross_wpm','error_rate_pct','accuracy_pct','phase'];
+    const csv = [columns.join(','), ...rows.map(row => columns.map(col => csvEscape(row[col])).join(','))].join('\r\n');
+    const blob = new Blob(['\ufeff' + csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const stamp = new Date().toISOString().replace(/[:.]/g,'-');
+    const pcode = (sessionParticipant || 'anonymous').replace(/[^a-z0-9_-]+/gi,'_');
+    link.href = url; link.download = `word-defense-${pcode}-${stamp}.csv`;
+    document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
+  }
+
+  function update(dt, nowMs) {
+    if (state !== 'running') return;
+    const elapsed = elapsedMs(Date.now()) / 1000;
+    if (durationLimitSec > 0 && elapsed >= durationLimitSec) { finishGame('timer'); return; }
+    spawnAccumulator += dt * 1000;
+    const profile = selectedProfile();
+    let safety = 0;
+    while (spawnAccumulator >= profile.spawnMs && safety++ < 3) {
+      spawnAccumulator -= profile.spawnMs;
+      spawnMeteor();
+    }
+    for (let i = meteors.length - 1; i >= 0; i--) {
+      const m = meteors[i];
+      m.y += m.speed * dt;
+      m.phase += dt * 2;
+      if (m.y >= groundY) meteorMissed(m);
+      if (state !== 'running') break;
+    }
+    explosions.forEach(ex => ex.age += dt);
+    explosions = explosions.filter(ex => ex.age < ex.maxAge);
+    if (Math.floor(elapsed) !== Math.floor(elapsed - dt)) updateUI();
+  }
+  function drawBackground(now) {
+    const gradient = ctx.createLinearGradient(0, 0, 0, H);
+    gradient.addColorStop(0, '#091526'); gradient.addColorStop(.72, '#0b1424'); gradient.addColorStop(1, '#101e2d');
+    ctx.fillStyle = gradient; ctx.fillRect(0,0,W,H);
+    // Subtle horizon glow and fine atmospheric grid.
+    const glow = ctx.createRadialGradient(W*.5, groundY-20, 0, W*.5, groundY-20, W*.7);
+    glow.addColorStop(0,'#173a4a44'); glow.addColorStop(1,'#10223500');
+    ctx.fillStyle = glow; ctx.fillRect(0,0,W,H);
+    ctx.save();
+    ctx.lineWidth = 1; ctx.strokeStyle = '#2b41551b';
+    for (let x = 0; x < W; x += 46) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,groundY); ctx.stroke(); }
+    for (let y = 24; y < groundY; y += 46) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+    stars.forEach(s => { const twinkle = .76 + Math.sin(now*.0007+s.phase)*.24; ctx.globalAlpha = s.alpha*twinkle; ctx.fillStyle = '#c5e8ff'; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill(); });
+    ctx.restore();
+    // Distant ridgeline.
+    ctx.beginPath(); ctx.moveTo(0,groundY+5);
+    for (let x=0; x<=W; x+=28) ctx.lineTo(x,groundY-12-Math.sin(x*.025)*7-Math.cos(x*.011)*5);
+    ctx.lineTo(W,H); ctx.lineTo(0,H); ctx.closePath(); ctx.fillStyle='#101f30'; ctx.fill();
+    // Protected ground and small city silhouettes.
+    ctx.fillStyle = '#0a1320'; ctx.fillRect(0,groundY+5,W,H-groundY);
+    ctx.strokeStyle = '#4e9ca9'; ctx.globalAlpha = .65; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(0,groundY); ctx.lineTo(W,groundY); ctx.stroke(); ctx.globalAlpha=1;
+    const blockW = 18; const gap = 9; const n = Math.ceil(W/(blockW+gap));
+    for (let i=0;i<n;i++) {
+      const x = i*(blockW+gap)+5; const bh = 8 + ((i*17+11)%23);
+      ctx.fillStyle = i%3===0 ? '#14283a' : '#122235'; ctx.fillRect(x,groundY+5-bh,blockW,bh);
+      ctx.fillStyle = '#3b91a055';
+      for(let wy=groundY+10-bh; wy<groundY; wy+=7) for(let wx=x+4; wx<x+blockW-2; wx+=7) ctx.fillRect(wx,wy,2,2);
+    }
+    // Tiny command base.
+    const bx=W/2;
+    ctx.fillStyle='#1b3548'; ctx.beginPath(); ctx.moveTo(bx-23,groundY+5); ctx.lineTo(bx-14,groundY-13); ctx.lineTo(bx+14,groundY-13); ctx.lineTo(bx+23,groundY+5); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='#5bd9e7'; ctx.lineWidth=1.3; ctx.beginPath(); ctx.moveTo(bx-12,groundY-13); ctx.lineTo(bx,groundY-26); ctx.lineTo(bx+12,groundY-13); ctx.stroke();
+    ctx.fillStyle='#83eff8'; ctx.beginPath(); ctx.arc(bx,groundY-19,2.5,0,Math.PI*2); ctx.fill();
+  }
+  function roundRect(x,y,w,h,r) {
+    const rr=Math.min(r,w/2,h/2); ctx.beginPath(); ctx.moveTo(x+rr,y); ctx.arcTo(x+w,y,x+w,y+h,rr); ctx.arcTo(x+w,y+h,x,y+h,rr); ctx.arcTo(x,y+h,x,y,rr); ctx.arcTo(x,y,x+w,y,rr); ctx.closePath();
+  }
+  function drawMeteor(m, now) {
+    const selected = m.id === lockId;
+    const pulse = .5 + .5*Math.sin(now*.006+m.phase);
+    if (selected) {
+      ctx.save(); ctx.setLineDash([4,6]); ctx.strokeStyle='#6ee7f9a0'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(W/2,groundY-20); ctx.lineTo(m.x,m.y+8); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle='#72eff9'; ctx.globalAlpha=.45+pulse*.4; ctx.beginPath(); ctx.arc(m.x,m.y,18+pulse*3,0,Math.PI*2); ctx.stroke(); ctx.restore();
+    }
+    // Falling ember tail.
+    const tail = ctx.createLinearGradient(m.x,m.y-7,m.x,m.y-39);
+    tail.addColorStop(0, selected ? '#b2fbff' : '#ffd1a2'); tail.addColorStop(.35, selected ? '#48cfe8aa' : '#ff985b99'); tail.addColorStop(1,'#ff985b00');
+    ctx.strokeStyle=tail; ctx.lineWidth=selected?4:3; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(m.x,m.y-5); ctx.lineTo(m.x-3,m.y-37); ctx.stroke();
+    const halo=ctx.createRadialGradient(m.x,m.y,1,m.x,m.y,20);
+    halo.addColorStop(0, selected?'#78efffaa':'#ffae6c99'); halo.addColorStop(1,'#ff9f5b00');
+    ctx.fillStyle=halo; ctx.beginPath(); ctx.arc(m.x,m.y,20,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=selected?'#a6f6ff':'#ffc18c'; ctx.beginPath(); ctx.arc(m.x,m.y,m.radius,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=selected?'#e9ffff':'#fff1df'; ctx.beginPath(); ctx.arc(m.x-2,m.y-2,2,0,Math.PI*2); ctx.fill();
+    ctx.font = '700 12px ui-monospace, SFMono-Regular, Menlo, monospace';
+    const padX=10, labelH=27, labelW=ctx.measureText(m.word).width+padX*2;
+    let labelX=m.x-labelW/2, labelY=m.y+16;
+    labelX=Math.max(7,Math.min(W-labelW-7,labelX));
+    if(labelY+labelH>groundY-5) labelY=m.y-labelH-15;
+    roundRect(labelX,labelY,labelW,labelH,7);
+    ctx.fillStyle=selected?'#123849ee':'#111c2def'; ctx.fill();
+    ctx.lineWidth=1; ctx.strokeStyle=selected?'#6de8f4':'#47566a'; ctx.stroke();
+    ctx.fillStyle=selected?'#bcfaff':'#e3edf8'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(m.word,labelX+labelW/2,labelY+labelH/2+.3);
+    if(selected) {
+      ctx.fillStyle='#75e9f5'; ctx.beginPath(); ctx.arc(labelX+7,labelY+labelH/2,2,0,Math.PI*2); ctx.fill();
+    }
+  }
+  function drawExplosions(dt) {
+    explosions.forEach(ex => {
+      const t=ex.age/ex.maxAge; const r=6+t*35;
+      ctx.save(); ctx.globalAlpha=(1-t)*.85; ctx.strokeStyle=ex.color; ctx.lineWidth=2*(1-t)+.4; ctx.beginPath(); ctx.arc(ex.x,ex.y,r,0,Math.PI*2); ctx.stroke();
+      ex.particles.forEach(p=>{
+        const dist=p.speed*ex.age; const px=ex.x+Math.cos(p.angle)*dist; const py=ex.y+Math.sin(p.angle)*dist;
+        ctx.globalAlpha=Math.max(0,1-t); ctx.fillStyle=ex.color; ctx.beginPath(); ctx.arc(px,py,p.size*(1-t),0,Math.PI*2); ctx.fill();
+      }); ctx.restore();
+    });
+  }
+  function drawScene(now) {
+    if(!ctx || !W || !H) return;
+    drawBackground(now);
+    meteors.forEach(m => drawMeteor(m,now));
+    drawExplosions();
+    if(state==='paused') {
+      ctx.fillStyle='#07101a88'; ctx.fillRect(0,0,W,H);
+      ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle='#d7eaff'; ctx.font='800 19px ui-sans-serif, system-ui'; ctx.fillText('SESSION PAUSED',W/2,H/2);
+      ctx.font='11px ui-sans-serif, system-ui'; ctx.fillStyle='#8ba7c1'; ctx.fillText('Resume to continue the clock and meteor field',W/2,H/2+25);
+    }
+  }
+  function frame(now) {
+    const dt=Math.min(.05,Math.max(0,(now-lastFrame)/1000 || 0));
+    lastFrame=now;
+    update(dt,now);
+    drawScene(now);
+    requestAnimationFrame(frame);
+  }
+
+  // Initialise visual state and controls.
+  resizeCanvas();
+  updateUI();
+  updateInputDisplay();
+  requestAnimationFrame((now) => { lastFrame = now; requestAnimationFrame(frame); });
+})();
+</script>
+</body>
+</html>
