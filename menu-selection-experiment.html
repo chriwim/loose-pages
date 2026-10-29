@@ -1,0 +1,543 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Menu Selection Experiment</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one centered column. The amber terminal panel is the single bold element (the stimulus screen);
+   setup, instructions and results stay quiet cool-grey surfaces with mono used for data. */
+:root{
+  --bg:#e8ecef; --surface:#f6f8f9; --ink:#15212b; --muted:#566673; --line:#c7d0d7;
+  --accent:#0a56a8; --accent-ink:#ffffff; --accent2:#a85d00; --good:#1d7a46; --bad:#b3261e;
+  --crt-bg:#15120d; --crt-fg:#f0b447; --crt-dim:#a77f35; --crt-line:#3a2f1a; --crt-hover:#2b2214;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --display:"IBM Plex Sans Condensed","IBM Plex Sans",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f151a; --surface:#18212a; --ink:#e3e9ee; --muted:#93a4b1; --line:#2c3a45;
+    --accent:#6aa9ee; --accent-ink:#0a1620; --accent2:#e5a23c; --good:#5fc58a; --bad:#f0827a;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f151a; --surface:#18212a; --ink:#e3e9ee; --muted:#93a4b1; --line:#2c3a45;
+  --accent:#6aa9ee; --accent-ink:#0a1620; --accent2:#e5a23c; --good:#5fc58a; --bad:#f0827a;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink); font:15px/1.55 var(--sans);
+  padding-block:28px 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+.wrap{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+.wrap>*{min-width:0}
+.eyebrow{font:500 12px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+h1{font:600 clamp(28px,5vw,38px)/1.1 var(--display);margin:0 0 10px;text-wrap:balance}
+h2{font:600 20px/1.2 var(--display);margin:0 0 12px;text-wrap:balance}
+h3{font:600 13px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+p{margin:0 0 10px;max-width:68ch}
+.lede{color:var(--muted);font-size:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+label.f{display:flex;flex-direction:column;gap:5px;font-weight:500;font-size:14px}
+input[type=text],input[type=number],select{
+  font:inherit;font-weight:400;color:var(--ink);background:var(--bg);border:1px solid var(--line);
+  border-radius:4px;padding:8px 10px;width:100%;
+}
+input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.conds{display:flex;flex-direction:column;gap:8px;margin:6px 0 0;padding:0;border:0}
+.conds legend{font-weight:500;font-size:14px;padding:0;margin-bottom:4px}
+.cond{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:4px;background:var(--bg);cursor:pointer}
+.cond input{margin-top:4px;accent-color:var(--accent)}
+.cond b{font-family:var(--mono);font-weight:600;margin-right:6px}
+.cond span{color:var(--muted);font-size:14px}
+.btn{font:600 15px var(--sans);border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);padding:10px 18px;border-radius:4px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn:hover{filter:brightness(1.08)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.err{color:var(--bad);font-size:14px;min-height:1.4em;margin:8px 0 0}
+.notes{margin:0;padding-left:18px;color:var(--muted);font-size:14px;display:flex;flex-direction:column;gap:6px}
+.notes b{color:var(--ink);font-weight:500}
+.mono{font-family:var(--mono)}
+.blockhead{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;margin-bottom:6px}
+.blockhead .big{font:600 44px/1 var(--mono)}
+/* terminal panel */
+.crt{background:var(--crt-bg);color:var(--crt-fg);border:1px solid var(--crt-line);border-radius:6px;font-family:var(--mono);overflow:hidden}
+.crt-bar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 16px;padding:12px 16px;border-bottom:1px solid var(--crt-line)}
+.crt-bar .lbl{font-size:12px;letter-spacing:.14em;color:var(--crt-dim);margin-right:12px}
+.crt-bar .target{font-size:24px;font-weight:600;letter-spacing:.02em}
+.crt-bar .prog{font-size:12px;color:var(--crt-dim)}
+.crt-body{min-height:430px;padding:16px;display:flex;align-items:center;justify-content:center}
+.crt-foot{padding:10px 16px;border-top:1px solid var(--crt-line);min-height:44px;font-size:13px;color:var(--crt-dim)}
+.crt-foot.ok{color:var(--crt-fg)}
+.crt-foot.no{color:#ff9d8f}
+.opt{display:block;width:100%;text-align:left;background:transparent;color:var(--crt-fg);border:1px solid var(--crt-line);padding:10px 14px;font:500 15px var(--mono);cursor:pointer;border-radius:3px}
+.opt:hover,.opt:focus-visible{background:var(--crt-hover);border-color:var(--crt-fg);outline:none}
+.list{width:min(100%,400px);display:flex;flex-direction:column;gap:6px}
+.grid64{width:100%;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;grid-template-rows:repeat(8,1fr);gap:4px}
+.grid64 .opt{padding:8px 4px;text-align:center;font-size:13px}
+.ready{text-align:center;max-width:44ch;display:flex;flex-direction:column;gap:18px;align-items:center}
+.ready p{color:var(--crt-dim);margin:0;font-size:14px}
+.go{font:600 16px var(--mono);background:var(--crt-fg);color:var(--crt-bg);border:0;padding:12px 26px;border-radius:3px;cursor:pointer;letter-spacing:.04em}
+.go:focus-visible{outline:2px solid var(--crt-fg);outline-offset:3px}
+@media (max-width:560px){
+  .grid64{grid-template-rows:repeat(16,1fr)}
+  .crt-body{min-height:0;padding:12px}
+}
+/* results */
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:560px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+td.n,th.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+td.c{font-family:var(--mono);font-weight:600}
+#chart{width:100%}
+#chart svg{display:block}
+.ax{fill:var(--muted);font:11px var(--mono)}
+.axv{fill:var(--ink);font:600 11px var(--mono);font-variant-numeric:tabular-nums}
+.grid-line{stroke:var(--line);stroke-width:1}
+.bar-h{fill:var(--accent)}
+.bar-r{fill:var(--accent2)}
+.whisk{stroke:var(--ink);stroke-width:1.5;fill:none}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--muted);margin-top:6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+textarea{width:100%;min-height:130px;font:12px/1.4 var(--mono);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:10px;resize:vertical}
+.trend p{max-width:72ch}
+.trend .mono{font-weight:600}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Human-computer interaction · menu structure</p>
+    <h1>Menu Selection Experiment</h1>
+    <p class="lede">Find a target word in a menu hierarchy as quickly and accurately as you can. The same 64 words are arranged as deep menus with few choices, shallow menus with many choices, or one single screen.</p>
+  </header>
+
+  <!-- SETUP -->
+  <section id="setup" class="card">
+    <h2>Session setup</h2>
+    <div class="grid">
+      <label class="f">Participant ID<input id="pid" type="text" value="P01" maxlength="24" autocomplete="off"></label>
+      <label class="f">Test trials per structure<input id="nTest" type="number" min="1" max="40" value="4"></label>
+      <label class="f">Practice trials per structure<input id="nPrac" type="number" min="0" max="10" value="1"></label>
+      <label class="f">Order of structures
+        <select id="order"><option value="random">Random for this participant</option><option value="listed">As listed below</option></select>
+      </label>
+    </div>
+    <fieldset class="conds">
+      <legend>Menu structures to run</legend>
+      <label class="cond"><input type="checkbox" name="cond" value="b2" checked><div><b>2⁶</b><span>Six menus, two choices each. Deepest hierarchy.</span></div></label>
+      <label class="cond"><input type="checkbox" name="cond" value="b4" checked><div><b>4³</b><span>Three menus, four choices each.</span></div></label>
+      <label class="cond"><input type="checkbox" name="cond" value="b8" checked><div><b>8²</b><span>Two menus, eight choices each.</span></div></label>
+      <label class="cond"><input type="checkbox" name="cond" value="cat64" checked><div><b>CAT64</b><span>One menu with all 64 words. Words of a category sit together in the same area.</span></div></label>
+      <label class="cond"><input type="checkbox" name="cond" value="ran64" checked><div><b>RAN64</b><span>One menu with all 64 words in random positions.</span></div></label>
+    </fieldset>
+    <div class="row" style="margin-top:16px">
+      <button id="startBtn" class="btn" type="button">Start experiment</button>
+      <span class="mono" style="color:var(--muted);font-size:13px" id="estimate"></span>
+    </div>
+    <p class="err" id="setupErr" role="alert"></p>
+    <h3 style="margin-top:14px">How this version works</h3>
+    <ul class="notes">
+      <li><b>Task.</b> A target word stays on screen. Click the menu item you think leads to it. In hierarchies, each click opens the next menu until the word itself appears.</li>
+      <li><b>Timing.</b> The clock starts when the first menu appears and stops at your final click. Reading the target happens before you press Show menu.</li>
+      <li><b>Errors.</b> A wrong choice ends the trial and counts as an error. Mean times use correct trials only.</li>
+      <li><b>Differences from the original.</b> Every participant sees all structures (the original compared groups), responses are mouse or touch, and the 64 words are an original word set, not Miller's (1981) materials. RAN64 uses one random arrangement per session.</li>
+    </ul>
+  </section>
+
+  <!-- BLOCK INTRO -->
+  <section id="intro" class="card" hidden>
+    <div class="blockhead">
+      <span class="big" id="introName"></span>
+      <span class="eyebrow" id="introCount" style="margin:0"></span>
+    </div>
+    <h2 id="introTitle"></h2>
+    <p id="introText"></p>
+    <p id="introPrac" style="color:var(--muted)"></p>
+    <div class="row" style="margin-top:8px"><button id="beginBtn" class="btn" type="button">Begin block</button></div>
+  </section>
+
+  <!-- STAGE -->
+  <section id="stage" hidden>
+    <div class="crt">
+      <div class="crt-bar">
+        <div><span class="lbl">SEARCH FOR</span><span class="target" id="tWord"></span></div>
+        <span class="prog" id="tProg"></span>
+      </div>
+      <div class="crt-body" id="tBody"></div>
+      <div class="crt-foot" id="tFoot" aria-live="polite"></div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button id="endEarly" class="btn ghost" type="button">End early and show results</button>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section id="results" hidden>
+    <div class="card" style="margin-bottom:20px">
+      <p class="eyebrow">Session complete</p>
+      <h2 id="resTitle">Results</h2>
+      <p id="resSub" style="color:var(--muted)"></p>
+      <div class="scroll"><table id="resTable"></table></div>
+    </div>
+    <div class="card" style="margin-bottom:20px">
+      <h2>Search time by menu structure</h2>
+      <div id="chart"></div>
+      <div class="legend"><span><i style="background:var(--accent)"></i>Hierarchical and categorized menus</span><span><i style="background:var(--accent2)"></i>Random layout</span><span>Whiskers show ±1 standard error</span></div>
+    </div>
+    <div class="card trend" style="margin-bottom:20px">
+      <h2>Trend across breadth</h2>
+      <div id="trend"></div>
+    </div>
+    <div class="card">
+      <h2>Trial data</h2>
+      <p style="color:var(--muted)">One row per trial, practice trials included and flagged. Paste into a spreadsheet or statistics package.</p>
+      <textarea id="csv" readonly aria-label="Trial data as CSV"></textarea>
+      <div class="row" style="margin-top:10px">
+        <button id="copyBtn" class="btn" type="button">Copy CSV</button>
+        <button id="againBtn" class="btn ghost" type="button">New session</button>
+        <span id="copyMsg" class="mono" style="font-size:13px;color:var(--muted)" role="status"></span>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+"use strict";
+var $=function(id){return document.getElementById(id)};
+
+/* ---------- Stimulus hierarchy: 64 words, binary tree, 6 levels ---------- */
+var RAW=["root",
+ ["Nature",
+  ["Animals",
+   ["Mammals",
+    ["Domestic",["Pets","dog","cat"],["Farm","cow","horse"]],
+    ["Wild",["Predators","lion","wolf"],["Grazers","deer","camel"]]],
+   ["Birds & Sea",
+    ["Birds",["Songbirds","robin","sparrow"],["Raptors","eagle","owl"]],
+    ["Water life",["Fish","salmon","trout"],["Sea mammals","whale","seal"]]]],
+  ["Plants & Earth",
+   ["Plants",
+    ["Trees",["Conifers","pine","spruce"],["Broadleaf","oak","maple"]],
+    ["Flowers",["Garden","rose","tulip"],["Wild flowers","daisy","poppy"]]],
+   ["Landscape",
+    ["Water",["Flowing","river","stream"],["Still","lake","pond"]],
+    ["Land",["Highland","mountain","hill"],["Lowland","valley","desert"]]]]],
+ ["Human World",
+  ["Food & Clothing",
+   ["Food",
+    ["Fruit",["Orchard","apple","pear"],["Tropical","banana","mango"]],
+    ["Staples",["Grains","bread","rice"],["Dairy","cheese","butter"]]],
+   ["Clothing",
+    ["Garments",["Top","shirt","jacket"],["Bottom","skirt","trousers"]],
+    ["Accessories",["Winter","scarf","mittens"],["Footwear","boots","sandals"]]]],
+  ["Tools & Places",
+   ["Tools",
+    ["Workshop",["Striking","hammer","mallet"],["Cutting","saw","chisel"]],
+    ["Household",["Kitchen","spoon","kettle"],["Cleaning","broom","mop"]]],
+   ["Buildings & Transport",
+    ["Buildings",["Homes","house","cottage"],["Public","school","church"]],
+    ["Transport",["Road","car","bus"],["Rail & air","train","plane"]]]]]];
+
+function build(a,parent,depth){
+  if(typeof a==="string") return {label:a,word:a,depth:depth,parent:parent,children:null,words:[a]};
+  var n={label:a[0],depth:depth,parent:parent,children:[],words:[]};
+  for(var i=1;i<a.length;i++){ var c=build(a[i],n,depth+1); n.children.push(c); n.words=n.words.concat(c.words); }
+  return n;
+}
+var ROOT=build(RAW,null,0);
+var LEAVES=[];
+(function walk(n){ if(n.word){LEAVES.push(n);return;} n.children.forEach(walk); })(ROOT);
+
+function descendants(node,d){
+  if(node.depth===d) return [node];
+  if(!node.children) return [];
+  var out=[]; node.children.forEach(function(c){ out=out.concat(descendants(c,d)); });
+  return out;
+}
+function ancestorAt(leaf,d){ var n=leaf; while(n.depth>d) n=n.parent; return n; }
+
+/* ---------- Conditions ---------- */
+var ORDER=["b2","b4","b8","cat64","ran64"];
+var CONDS={
+  b2:{id:"b2",name:"2⁶",breadth:2,levels:6,depths:[1,2,3,4,5,6],
+      title:"Six menus of two choices",
+      text:"Each menu offers 2 choices. You pass through 6 menus. At each one, click the item that contains the target word. The last menu shows two words."},
+  b4:{id:"b4",name:"4³",breadth:4,levels:3,depths:[2,4,6],
+      title:"Three menus of four choices",
+      text:"Each menu offers 4 choices. You pass through 3 menus. At each one, click the item that contains the target word. The last menu shows four words."},
+  b8:{id:"b8",name:"8²",breadth:8,levels:2,depths:[3,6],
+      title:"Two menus of eight choices",
+      text:"Each menu offers 8 choices. You pass through 2 menus. The first lists categories, the second lists the eight words in the category you picked."},
+  cat64:{id:"cat64",name:"CAT64",breadth:64,levels:1,depths:[6],layout:"cat",
+      title:"One menu, 64 words, grouped by category",
+      text:"All 64 words appear on a single screen. Words from the same category are placed together in the same area, in columns. Click the target word."},
+  ran64:{id:"ran64",name:"RAN64",breadth:64,levels:1,depths:[6],layout:"ran",
+      title:"One menu, 64 words, random positions",
+      text:"All 64 words appear on a single screen. Their positions are random, so related words are not next to each other. Click the target word."}
+};
+
+/* ---------- Helpers ---------- */
+function shuffle(a){ for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t; } return a; }
+function clamp(v,lo,hi){ return Math.min(hi,Math.max(lo,v)); }
+function avg(a){ return a.length? a.reduce(function(s,x){return s+x;},0)/a.length : NaN; }
+function sd(a){ if(a.length<2) return NaN; var m=avg(a); return Math.sqrt(a.reduce(function(s,x){return s+(x-m)*(x-m);},0)/(a.length-1)); }
+function fmt(x,d){ return isFinite(x)? x.toFixed(d) : "–"; }
+function show(id){ ["setup","intro","stage","results"].forEach(function(s){ $(s).hidden=(s!==id); }); window.scrollTo(0,0); }
+
+/* ---------- Session state ---------- */
+var S=null, run=null, locked=true;
+
+function updateEstimate(){
+  var n=document.querySelectorAll("input[name=cond]:checked").length;
+  var t=(parseInt($("nTest").value,10)||0)+(parseInt($("nPrac").value,10)||0);
+  $("estimate").textContent=n? (n*t)+" trials in total" : "";
+}
+["nTest","nPrac"].forEach(function(i){ $(i).addEventListener("input",updateEstimate); });
+document.querySelectorAll("input[name=cond]").forEach(function(c){ c.addEventListener("change",updateEstimate); });
+updateEstimate();
+
+$("startBtn").addEventListener("click",function(){
+  var conds=[].slice.call(document.querySelectorAll("input[name=cond]:checked")).map(function(e){return e.value;});
+  if(!conds.length){ $("setupErr").textContent="Select at least one menu structure."; return; }
+  $("setupErr").textContent="";
+  var nTest=clamp(parseInt($("nTest").value,10)||4,1,40);
+  var nPrac=clamp(parseInt($("nPrac").value,10)||0,0,10);
+  if(nTest+nPrac>64) nPrac=64-nTest;
+  if($("order").value==="random") shuffle(conds);
+  S={pid:$("pid").value.trim()||"P01",sid:Date.now().toString(36),conds:conds,bi:-1,
+     nTest:nTest,nPrac:nPrac,records:[],ranNodes:shuffle(LEAVES.slice())};
+  nextBlock();
+});
+
+function nextBlock(){
+  S.bi++;
+  if(S.bi>=S.conds.length){ return showResults(); }
+  var c=CONDS[S.conds[S.bi]];
+  $("introName").textContent=c.name;
+  $("introCount").textContent="Block "+(S.bi+1)+" of "+S.conds.length;
+  $("introTitle").textContent=c.title;
+  $("introText").textContent=c.text;
+  $("introPrac").textContent=(S.nPrac? S.nPrac+" practice trial"+(S.nPrac>1?"s":"")+" first, then " : "")+S.nTest+" timed trial"+(S.nTest>1?"s":"")+". Work fast, but try not to make errors.";
+  show("intro");
+  $("beginBtn").focus();
+}
+$("beginBtn").addEventListener("click",function(){
+  var words=shuffle(LEAVES.slice()).slice(0,S.nPrac+S.nTest);
+  S.trials=words.map(function(w,i){ return {leaf:w,practice:i<S.nPrac,idx:i<S.nPrac? i+1 : i-S.nPrac+1}; });
+  S.ti=-1;
+  show("stage");
+  nextTrial();
+});
+
+function nextTrial(){
+  S.ti++;
+  if(S.ti>=S.trials.length) return nextBlock();
+  var t=S.trials[S.ti], c=CONDS[S.conds[S.bi]];
+  run={cond:c,trial:t,target:t.leaf.word,cur:ROOT,step:0,steps:[],choices:[],first:null,shown:null,items:null};
+  $("tWord").textContent=t.leaf.word;
+  $("tProg").textContent="Block "+(S.bi+1)+"/"+S.conds.length+" · "+c.name+" · "+(t.practice? "Practice "+t.idx+"/"+S.nPrac : "Trial "+t.idx+"/"+S.nTest);
+  var foot=$("tFoot"); foot.className="crt-foot"; foot.textContent="";
+  locked=true;
+  var body=$("tBody"); body.textContent="";
+  var box=document.createElement("div"); box.className="ready";
+  var p=document.createElement("p"); p.textContent="Read the target word above. The clock starts when the menu appears.";
+  var b=document.createElement("button"); b.className="go"; b.type="button"; b.textContent="Show menu";
+  b.addEventListener("click",showScreen);
+  box.appendChild(p); box.appendChild(b); body.appendChild(box);
+  b.focus();
+}
+
+function showScreen(){
+  var c=run.cond, depth=c.depths[run.step], items;
+  if(c.layout==="cat") items=LEAVES; else if(c.layout==="ran") items=S.ranNodes; else items=descendants(run.cur,depth);
+  run.items=items; run.shown=null;
+  var body=$("tBody"); body.textContent="";
+  var wrap=document.createElement("div");
+  wrap.className=c.layout? "grid64":"list";
+  items.forEach(function(it,i){
+    var b=document.createElement("button"); b.type="button"; b.className="opt"; b.textContent=it.label; b.dataset.i=i; wrap.appendChild(b);
+  });
+  body.appendChild(wrap);
+  var foot=$("tFoot"); foot.className="crt-foot";
+  foot.textContent=c.layout? "Click the target word." : "Menu "+(run.step+1)+" of "+c.levels+". Click the item that contains the target.";
+  locked=false;
+  requestAnimationFrame(function(){ run.shown=performance.now(); if(run.first===null) run.first=run.shown; });
+}
+
+$("tBody").addEventListener("click",function(e){
+  var b=e.target.closest(".opt"); if(!b||locked||run.shown===null) return;
+  var t=performance.now(), item=run.items[+b.dataset.i];
+  var ok=item.words.indexOf(run.target)>-1;
+  run.steps.push(t-run.shown); run.choices.push(item.label);
+  if(!ok) return finishTrial(false,t,item);
+  if(run.step===run.cond.depths.length-1) return finishTrial(true,t,item);
+  run.cur=item; run.step++; showScreen();
+});
+
+function finishTrial(correct,t,item){
+  locked=true;
+  var c=run.cond, tr=run.trial;
+  var catNode=ancestorAt(tr.leaf,3);
+  S.records.push({
+    participant:S.pid,session:S.sid,condition:c.id,structure:c.name,breadth:c.breadth,levels:c.levels,
+    block:S.bi+1,trial:tr.idx,practice:tr.practice,target:run.target,category:catNode.label,
+    correct:correct,rt_ms:Math.round(t-run.first),steps:run.steps.map(function(x){return Math.round(x);}),
+    error_level:correct? "" : run.step+1,choices:run.choices.join(" > "),timestamp:new Date().toISOString()
+  });
+  var foot=$("tFoot");
+  if(correct){ foot.className="crt-foot ok"; foot.textContent="Correct."; }
+  else{
+    var right=run.items.filter(function(x){return x.words.indexOf(run.target)>-1;})[0];
+    foot.className="crt-foot no";
+    foot.textContent="Incorrect. "+run.target+" was in "+(right? right.label : "another item")+".";
+  }
+  setTimeout(nextTrial,correct?450:1200);
+}
+
+$("endEarly").addEventListener("click",function(){ locked=true; showResults(); });
+
+/* ---------- Results ---------- */
+function stat(id){
+  var r=S.records.filter(function(x){return x.condition===id && !x.practice;});
+  var c=r.filter(function(x){return x.correct;});
+  var rts=c.map(function(x){return x.rt_ms/1000;});
+  var steps=[]; c.forEach(function(x){ x.steps.forEach(function(s){steps.push(s/1000);}); });
+  var m=avg(rts), s=sd(rts);
+  return {id:id,n:r.length,nc:c.length,acc:r.length? c.length/r.length : NaN,mean:m,se:isFinite(s)? s/Math.sqrt(rts.length) : 0,step:avg(steps)};
+}
+function regress(xs,ys){
+  var n=xs.length; if(n<3) return null;
+  var mx=avg(xs), my=avg(ys), sxx=0,sxy=0,syy=0;
+  for(var i=0;i<n;i++){ sxx+=(xs[i]-mx)*(xs[i]-mx); sxy+=(xs[i]-mx)*(ys[i]-my); syy+=(ys[i]-my)*(ys[i]-my); }
+  if(sxx===0||syy===0) return null;
+  var b=sxy/sxx, a=my-b*mx, sse=0;
+  for(var j=0;j<n;j++){ var e=ys[j]-(a+b*xs[j]); sse+=e*e; }
+  return {slope:b,se:Math.sqrt(sse/(n-2)/sxx),r2:(sxy*sxy)/(sxx*syy),n:n};
+}
+
+function showResults(){
+  show("results");
+  var ids=ORDER.filter(function(id){ return S.conds.indexOf(id)>-1; });
+  var total=S.records.filter(function(x){return !x.practice;}).length;
+  $("resTitle").textContent="Results for "+S.pid;
+  $("resSub").textContent=total+" timed trials across "+ids.length+" menu structure"+(ids.length===1?"":"s")+". Mean times use correct trials only.";
+
+  var tbl=$("resTable"); tbl.textContent="";
+  var head="<thead><tr><th>Structure</th><th class='n'>Menus × choices</th><th class='n'>Trials</th><th class='n'>Accuracy</th><th class='n'>Mean time (s)</th><th class='n'>SE</th><th class='n'>Per menu (s)</th></tr></thead>";
+  var rows=ids.map(function(id){
+    var c=CONDS[id], s=stat(id);
+    return "<tr><td class='c'>"+c.name+"</td><td class='n'>"+c.levels+" × "+(c.layout? 64 : c.breadth)+"</td><td class='n'>"+s.n+"</td><td class='n'>"+(isFinite(s.acc)? Math.round(s.acc*100)+"%" : "–")+"</td><td class='n'>"+fmt(s.mean,2)+"</td><td class='n'>"+(s.nc>1? fmt(s.se,2) : "–")+"</td><td class='n'>"+fmt(s.step,2)+"</td></tr>";
+  }).join("");
+  tbl.innerHTML=head+"<tbody>"+rows+"</tbody>";
+
+  drawChart();
+  renderTrend();
+  $("csv").value=toCSV();
+  $("copyMsg").textContent="";
+}
+
+function niceStep(x){
+  var p=Math.pow(10,Math.floor(Math.log10(x))), f=x/p;
+  return (f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*p;
+}
+function drawChart(){
+  var box=$("chart"); if(!S||$("results").hidden) return;
+  var rows=ORDER.filter(function(id){return S.conds.indexOf(id)>-1;}).map(function(id){return stat(id);}).filter(function(s){return s.nc>0;});
+  if(!rows.length){ box.textContent="No correct trials were recorded."; return; }
+  var W=Math.max(300,box.clientWidth), H=290, m={l:44,r:8,t:18,b:52};
+  var iw=W-m.l-m.r, ih=H-m.t-m.b;
+  var maxV=Math.max.apply(null,rows.map(function(r){return r.mean+r.se;}));
+  var step=niceStep((maxV*1.08)/4), top=Math.ceil(maxV*1.08/step)*step;
+  var y=function(v){ return m.t+ih*(1-v/top); };
+  var svg="<svg width='"+W+"' height='"+H+"' viewBox='0 0 "+W+" "+H+"' role='img' aria-label='Bar chart of mean search time by menu structure'>";
+  for(var v=0; v<=top+1e-9; v+=step){
+    svg+="<line class='grid-line' x1='"+m.l+"' x2='"+(W-m.r)+"' y1='"+y(v)+"' y2='"+y(v)+"'/>";
+    svg+="<text class='ax' x='"+(m.l-6)+"' y='"+(y(v)+4)+"' text-anchor='end'>"+(+v.toFixed(2))+"</text>";
+  }
+  svg+="<text class='ax' x='"+m.l+"' y='10'>seconds</text>";
+  var slot=iw/rows.length, bw=Math.min(64,slot*0.58);
+  rows.forEach(function(r,i){
+    var c=CONDS[r.id], cx=m.l+slot*i+slot/2, x0=cx-bw/2, yt=y(r.mean);
+    svg+="<rect class='"+(r.id==="ran64"?"bar-r":"bar-h")+"' x='"+x0+"' y='"+yt+"' width='"+bw+"' height='"+(y(0)-yt)+"'/>";
+    if(r.nc>1){
+      var lo=y(Math.max(0,r.mean-r.se)), hi=y(r.mean+r.se);
+      svg+="<path class='whisk' d='M"+cx+" "+hi+"V"+lo+"M"+(cx-5)+" "+hi+"H"+(cx+5)+"M"+(cx-5)+" "+lo+"H"+(cx+5)+"'/>";
+      svg+="<text class='axv' x='"+cx+"' y='"+(hi-6)+"' text-anchor='middle'>"+r.mean.toFixed(2)+"</text>";
+    } else {
+      svg+="<text class='axv' x='"+cx+"' y='"+(yt-6)+"' text-anchor='middle'>"+r.mean.toFixed(2)+"</text>";
+    }
+    svg+="<text class='axv' x='"+cx+"' y='"+(H-30)+"' text-anchor='middle'>"+c.name+"</text>";
+    svg+="<text class='ax' x='"+cx+"' y='"+(H-14)+"' text-anchor='middle'>"+c.levels+"×"+(c.layout? 64 : c.breadth)+"</text>";
+  });
+  svg+="</svg>";
+  box.innerHTML=svg;
+}
+window.addEventListener("resize",function(){ if(S&&!$("results").hidden) drawChart(); });
+
+function renderTrend(){
+  var out=$("trend"), ids=["b2","b4","b8","cat64"].filter(function(id){return S.conds.indexOf(id)>-1;});
+  var html="";
+  var withData=ids.filter(function(id){return stat(id).nc>0;});
+  if(withData.length<3){
+    html="<p>A trend needs at least three of 2⁶, 4³, 8² and CAT64 with correct trials. Run more structures to see it.</p>";
+  } else {
+    var xs=[],ys=[],ax=[],ay=[];
+    S.records.forEach(function(r){
+      if(r.practice||withData.indexOf(r.condition)<0) return;
+      var x=Math.log2(r.breadth);
+      ax.push(x); ay.push(r.correct? 100 : 0);
+      if(r.correct){ xs.push(x); ys.push(r.rt_ms/1000); }
+    });
+    var rt=regress(xs,ys), ac=regress(ax,ay);
+    html+="<p>Linear fit over "+withData.map(function(id){return CONDS[id].name;}).join(", ")+", with breadth on a log₂ scale (2, 4, 8 and 64 choices per menu are 1, 2, 3 and 6 doublings).</p>";
+    if(rt){
+      html+="<p><span class='mono'>Search time:</span> "+(rt.slope<0? "fell":"rose")+" by <span class='mono'>"+fmt(Math.abs(rt.slope),2)+" s</span> per doubling of menu breadth (SE "+fmt(rt.se,2)+", r² = "+fmt(rt.r2,2)+", "+rt.n+" correct trials). "+(rt.slope<0? "Broader menus were searched faster.":"Deeper menus were searched faster.")+"</p>";
+    }
+    if(ac){
+      html+="<p><span class='mono'>Accuracy:</span> "+(ac.slope>=0? "rose":"fell")+" by <span class='mono'>"+fmt(Math.abs(ac.slope),1)+" percentage points</span> per doubling of breadth (SE "+fmt(ac.se,1)+", r² = "+fmt(ac.r2,2)+", "+ac.n+" trials). "+(ac.slope>=0? "Broader menus produced fewer errors.":"Deeper menus produced fewer errors.")+"</p>";
+    }
+  }
+  if(S.conds.indexOf("cat64")>-1 && S.conds.indexOf("ran64")>-1){
+    var a=stat("cat64"), b=stat("ran64");
+    if(a.nc>0&&b.nc>0){
+      var d=b.mean-a.mean;
+      html+="<p><span class='mono'>Layout:</span> random placement was "+(d>=0? "slower":"faster")+" than grouped placement by <span class='mono'>"+fmt(Math.abs(d),2)+" s</span> on average ("+fmt(b.mean,2)+" s vs "+fmt(a.mean,2)+" s).</p>";
+    }
+  }
+  html+="<p style='color:var(--muted);font-size:14px'>Descriptive fits on one participant's trials. With several participants, compare structure means per person and test them with a repeated-measures trend analysis.</p>";
+  out.innerHTML=html;
+}
+
+function toCSV(){
+  var cols=["participant","session","condition","structure","breadth","levels","block","trial","practice","target","category","correct","rt_ms","step_rt_ms","error_level","choices","timestamp"];
+  var esc=function(v){ v=String(v); return /[",\n]/.test(v)? '"'+v.replace(/"/g,'""')+'"' : v; };
+  var lines=[cols.join(",")];
+  S.records.forEach(function(r){
+    lines.push(cols.map(function(c){
+      var v=c==="step_rt_ms"? r.steps.join(";") : r[c];
+      return esc(v);
+    }).join(","));
+  });
+  return lines.join("\n");
+}
+
+$("copyBtn").addEventListener("click",function(){
+  var ta=$("csv"), msg=$("copyMsg");
+  var fallback=function(){ ta.focus(); ta.select(); msg.textContent="Text selected. Press Ctrl+C or Cmd+C to copy."; };
+  try{
+    navigator.clipboard.writeText(ta.value).then(function(){ msg.textContent="Copied."; },fallback);
+  }catch(e){ fallback(); }
+});
+$("againBtn").addEventListener("click",function(){ S=null; run=null; show("setup"); });
+})();
+</script>
+
+</body></html>

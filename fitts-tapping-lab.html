@@ -1,0 +1,519 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Fitts Tapping Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one column lab bench. Setup panel, a full-width stage while running, then results (tiles, chart, table, export). */
+:root{
+  --bg:#ECEEF1; --surface:#FFFFFF; --field:#F5F6F8; --ink:#14181F; --muted:#586272; --line:#D3D8DF;
+  --accent:#2447D6; --accent-ink:#FFFFFF; --idle:#C5CCD6; --stage:#F7F8FA; --veil:rgba(247,248,250,.92);
+  --hit:#1B8657; --miss:#C5352B; --warn:#8A5A00;
+  --display:'Bricolage Grotesque','Helvetica Neue',Arial,sans-serif;
+  --body:'IBM Plex Sans','Helvetica Neue',Arial,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1116; --surface:#161B22; --field:#0F1319; --ink:#E7EAEF; --muted:#9AA4B3; --line:#29313C;
+    --accent:#7490FF; --accent-ink:#0A1020; --idle:#38414E; --stage:#0B0E13; --veil:rgba(11,14,19,.92);
+    --hit:#4CC38A; --miss:#FF7A6E; --warn:#E3B04B; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1116; --surface:#161B22; --field:#0F1319; --ink:#E7EAEF; --muted:#9AA4B3; --line:#29313C;
+  --accent:#7490FF; --accent-ink:#0A1020; --idle:#38414E; --stage:#0B0E13; --veil:rgba(11,14,19,.92);
+  --hit:#4CC38A; --miss:#FF7A6E; --warn:#E3B04B; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--ink); font:15px/1.5 var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:24px 40px;
+}
+main{max-width:1080px;margin:0 auto;display:grid;gap:20px}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px}
+h1{font:700 clamp(28px,5vw,40px)/1.05 var(--display);letter-spacing:-.02em;margin:0;text-wrap:balance}
+h2{font:700 20px/1.2 var(--display);margin:0 0 14px;letter-spacing:-.01em}
+.eq{font:500 13px/1.4 var(--mono);color:var(--muted);margin:0}
+.eq b{color:var(--ink);font-weight:500}
+.lede{margin:8px 0 0;color:var(--muted);max-width:60ch}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:20px;min-width:0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+label,.lab{display:block;font:500 11px/1.2 var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px}
+input[type=text],input[type=number],select,textarea{
+  width:100%;min-height:42px;padding:8px 10px;border:1px solid var(--line);border-radius:4px;background:var(--field);color:var(--ink);font:400 15px var(--body);
+}
+input[type=text].mono,textarea{font-family:var(--mono);font-size:13px}
+.hint{font-size:12.5px;color:var(--muted);margin:6px 0 0}
+.check{display:flex;align-items:center;gap:10px;min-height:42px;font:400 15px var(--body);text-transform:none;letter-spacing:0;color:var(--ink);margin:0}
+.check input{width:18px;height:18px;accent-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px;align-items:center}
+.btn{min-height:44px;padding:0 18px;border-radius:4px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);font:500 15px var(--body);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.sum{font:400 13px/1.5 var(--mono);color:var(--muted);margin:0}
+.sum.warn{color:var(--warn)}
+/* run */
+.hud{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px 20px;align-items:end}
+.hud .v{font:500 18px/1.2 var(--mono);font-variant-numeric:tabular-nums}
+.bar{height:4px;background:var(--line);border-radius:2px;margin-top:14px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent)}
+.stage{position:relative;background:var(--stage);border:1px solid var(--line);border-radius:6px;overflow:hidden;max-width:100%}
+.stage canvas{display:block;touch-action:none;cursor:crosshair;user-select:none;-webkit-user-select:none}
+.overlay{position:absolute;inset:0;background:var(--veil);display:flex;align-items:center;justify-content:center;text-align:center;padding:16px}
+.overlay .box{max-width:420px;display:grid;gap:10px;justify-items:center}
+.overlay .big{font:700 24px/1.15 var(--display)}
+.overlay .spec{font:500 14px/1.4 var(--mono);color:var(--muted)}
+.overlay p{margin:0;color:var(--muted)}
+.runfoot{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center}
+/* results */
+.banner{border:1px dashed var(--warn);color:var(--warn);border-radius:4px;padding:10px 14px;font:400 13px/1.4 var(--mono)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.tile{border-left:3px solid var(--accent);padding:2px 0 2px 14px}
+.tile .v{font:500 28px/1.15 var(--mono);font-variant-numeric:tabular-nums}
+.tile .u{font:400 13px var(--mono);color:var(--muted)}
+.tile .s{font-size:12.5px;color:var(--muted)}
+.chart{width:100%;min-width:0}
+.chart svg{display:block;max-width:100%}
+.chart text{font:400 11px var(--mono);fill:var(--muted)}
+.chart .gl{stroke:var(--line);stroke-width:1}
+.chart .ax{stroke:var(--muted);stroke-width:1}
+.chart .pt{fill:var(--accent);stroke:var(--surface);stroke-width:2}
+.chart .fit{stroke:var(--accent);stroke-width:2;fill:none}
+.chart .lbl{fill:var(--ink)}
+.tablewrap{overflow-x:auto;max-width:100%}
+table{border-collapse:collapse;width:100%;font:400 13px var(--mono);font-variant-numeric:tabular-nums}
+th,td{padding:8px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-weight:500;color:var(--muted);text-transform:uppercase;font-size:11px;letter-spacing:.06em}
+th:first-child,td:first-child{text-align:left}
+tr.bad td.err{color:var(--miss)}
+textarea{min-height:140px;resize:vertical;white-space:pre;overflow:auto}
+.note{color:var(--muted);font-size:13.5px;margin:12px 0 0;max-width:75ch}
+.row2{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:20px}
+@media (max-width:800px){.row2{grid-template-columns:minmax(0,1fr)}}
+.steps{margin:0;padding-left:18px;color:var(--muted);font-size:14px;display:grid;gap:6px}
+.steps b{color:var(--ink);font-weight:500}
+</style>
+
+<main id="main">
+  <header class="top">
+    <div>
+      <h1>Fitts Tapping Lab</h1>
+      <p class="lede">Tap targets of different distance and width, then see how movement time follows the index of difficulty.</p>
+    </div>
+    <p class="eq">MT = <b>a</b> + <b>b</b> · log₂(D/W + 1)</p>
+  </header>
+
+  <section id="setup" class="panel">
+    <h2>Set up the session</h2>
+    <div class="row2">
+      <div>
+        <div class="grid">
+          <div><label for="participant">Participant ID</label><input type="text" id="participant" class="mono" autocomplete="off" maxlength="24"></div>
+          <div><label for="task">Task</label>
+            <select id="task">
+              <option value="1d">1D reciprocal tapping (two bars)</option>
+              <option value="2d">2D multi-directional (ISO 9241-9 circle)</option>
+            </select></div>
+          <div><label for="dists">Distances D (px)</label><input type="text" id="dists" class="mono" autocomplete="off"><p class="hint">Centre to centre. Comma separated.</p></div>
+          <div><label for="widths">Widths W (px)</label><input type="text" id="widths" class="mono" autocomplete="off"><p class="hint">Bar width or circle diameter.</p></div>
+          <div><label for="trials">Trials per condition</label><input type="number" id="trials" min="3" max="60" step="1"></div>
+          <div><label for="formula">Index of difficulty</label>
+            <select id="formula">
+              <option value="shannon">Shannon: log₂(D/W + 1)</option>
+              <option value="fitts">Fitts: log₂(2D/W)</option>
+              <option value="welford">Welford: log₂(D/W + 0.5)</option>
+            </select></div>
+          <div><span class="lab">Order</span><label class="check" for="random"><input type="checkbox" id="random"> Randomise condition order</label></div>
+        </div>
+        <div class="actions">
+          <button class="btn" id="startBtn" type="button">Start experiment</button>
+          <button class="btn ghost" id="sampleBtn" type="button">Preview results with sample data</button>
+        </div>
+        <p class="sum" id="summary" style="margin-top:14px"></p>
+      </div>
+      <div>
+        <span class="lab">What happens</span>
+        <ol class="steps">
+          <li><b>Click the highlighted target</b> to start a condition. That first click is not scored.</li>
+          <li><b>Alternate between targets</b> as fast as you can while staying accurate. Misses are counted but the trial still advances.</li>
+          <li><b>Every condition</b> is a D × W pair. Pairs that do not fit your window are dropped.</li>
+          <li><b>Results</b> give a regression of movement time on difficulty and effective throughput in bits/s.</li>
+        </ol>
+        <p class="note">Press Esc to abort a run. Use the same device and window size for every participant you compare.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="run" hidden style="display:grid;gap:14px">
+    <div class="panel">
+      <div class="hud">
+        <div><span class="lab">Condition</span><div class="v" id="hCond">1 / 9</div></div>
+        <div><span class="lab">D × W</span><div class="v" id="hDW">240 × 24</div></div>
+        <div><span class="lab">ID</span><div class="v" id="hID">3.46 bits</div></div>
+        <div><span class="lab">Trial</span><div class="v" id="hTrial">0 / 10</div></div>
+        <div><span class="lab">Misses</span><div class="v" id="hErr">0</div></div>
+      </div>
+      <div class="bar"><i id="hBar"></i></div>
+    </div>
+    <div class="stage" id="stage">
+      <canvas id="cv" aria-label="Tapping stage"></canvas>
+      <div class="overlay" id="overlay"></div>
+    </div>
+    <div class="runfoot">
+      <p class="sum" id="runMsg">Click the highlighted target to begin.</p>
+      <button class="btn ghost" id="abortBtn" type="button">Abort run</button>
+    </div>
+  </section>
+
+  <section id="results" hidden style="display:grid;gap:20px">
+    <div class="banner" id="sampleBanner" hidden>Sample data. These trials were simulated with MT = 180 + 140 · ID plus noise, not measured from a person.</div>
+    <div class="panel">
+      <h2>Summary</h2>
+      <div class="tiles" id="tiles"></div>
+    </div>
+    <div class="panel">
+      <h2>Movement time against difficulty</h2>
+      <div class="chart" id="chart"></div>
+      <p class="note" id="fitNote"></p>
+    </div>
+    <div class="panel">
+      <h2>Conditions</h2>
+      <div class="tablewrap"><table id="table"></table></div>
+      <p class="note">ID uses the nominal D and W. IDe, the effective index, uses the spread of where taps landed (We = 4.133 · SD) and the distance actually moved, and throughput is IDe divided by mean movement time.</p>
+    </div>
+    <div class="panel">
+      <h2>Export</h2>
+      <div class="actions" style="margin-top:0;margin-bottom:12px">
+        <button class="btn" id="copyTrials" type="button">Copy trial data (CSV)</button>
+        <button class="btn ghost" id="copySummary" type="button">Copy condition summary (CSV)</button>
+        <span class="sum" id="copyMsg"></span>
+      </div>
+      <label for="csv">CSV preview</label>
+      <textarea id="csv" readonly spellcheck="false"></textarea>
+    </div>
+    <div class="actions" style="margin-top:0">
+      <button class="btn" id="againBtn" type="button">Run another session</button>
+    </div>
+  </section>
+</main>
+
+<script>
+(function(){
+"use strict";
+var $=function(id){return document.getElementById(id)};
+var LS='fitts-lab-settings-v2';
+var DEF={participant:'P01',task:'1d',dists:'120, 240',widths:'12, 24',trials:5,formula:'shannon',random:true};
+var N2D=9;
+
+function loadSettings(){try{var s=JSON.parse(localStorage.getItem(LS));return Object.assign({},DEF,s||{})}catch(e){return Object.assign({},DEF)}}
+function saveSettings(s){try{localStorage.setItem(LS,JSON.stringify(s))}catch(e){}}
+function writeForm(s){
+  $('participant').value=s.participant;$('task').value=s.task;$('dists').value=s.dists;$('widths').value=s.widths;
+  $('trials').value=s.trials;$('formula').value=s.formula;$('random').checked=!!s.random;
+}
+function readForm(){
+  var t=parseInt($('trials').value,10);if(!isFinite(t))t=10;t=Math.max(3,Math.min(60,t));
+  return {participant:($('participant').value.trim()||'P01'),task:$('task').value,dists:$('dists').value,widths:$('widths').value,
+    trials:t,formula:$('formula').value,random:$('random').checked};
+}
+function parseList(str){
+  var out=[];(str||'').split(/[,\s;]+/).forEach(function(p){var n=parseFloat(p);if(isFinite(n)&&n>0&&out.indexOf(n)<0)out.push(n)});
+  out.sort(function(a,b){return a-b});return out.slice(0,8);
+}
+function idOf(D,W,f){
+  if(f==='fitts')return Math.log2(2*D/W);
+  if(f==='welford')return Math.log2(D/W+0.5);
+  return Math.log2(D/W+1);
+}
+function stageDims(task,w){return task==='1d'?{w:w,h:240}:{w:w,h:Math.round(Math.min(560,Math.max(320,w)))}}
+function fits(task,D,W,w,h){
+  if(task==='1d')return D>W&&D+W+16<=w;
+  return D*Math.sin(Math.PI/N2D)>=W&&D+W+16<=Math.min(w,h);
+}
+function availWidth(){return Math.max(240,Math.min($('main').clientWidth,1080))}
+function buildConds(s){
+  var Ds=parseList(s.dists),Ws=parseList(s.widths),w=availWidth(),dim=stageDims(s.task,w),list=[],total=0;
+  Ds.forEach(function(D){Ws.forEach(function(W){total++;if(fits(s.task,D,W,dim.w,dim.h))list.push({D:D,W:W,ID:idOf(D,W,s.formula)})})});
+  return {list:list,total:total};
+}
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
+
+function updateSummary(){
+  var s=readForm(),c=buildConds(s),n=c.list.length,trials=n*s.trials,mins=Math.max(1,Math.round((trials*1.0+n*5)/60));
+  var el=$('summary');
+  if(c.total===0){el.textContent='Enter at least one distance and one width.';el.className='sum warn';$('startBtn').disabled=true;return}
+  if(n===0){el.textContent='None of the '+c.total+' conditions fit this window. Use smaller distances or a wider window.';el.className='sum warn';$('startBtn').disabled=true;return}
+  var t=n+' condition'+(n===1?'':'s')+' · '+trials+' scored trials · about '+mins+' min';
+  var dropped=c.total-n;
+  if(dropped>0){t+=' · '+dropped+' dropped because they do not fit the stage';el.className='sum warn'}else el.className='sum';
+  el.textContent=t;$('startBtn').disabled=false;
+}
+
+/* ---------- run state ---------- */
+var S=null;
+var cv=$('cv'),ctx=cv.getContext('2d');
+var dims={w:0,h:0};
+
+function cssVar(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+function fitCanvas(){
+  if(!S)return;
+  var w=Math.floor($('stage').clientWidth)||availWidth();
+  var d=stageDims(S.settings.task,w),dpr=window.devicePixelRatio||1;
+  dims=d;cv.style.width=d.w+'px';cv.style.height=d.h+'px';
+  cv.width=Math.round(d.w*dpr);cv.height=Math.round(d.h*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  layout();draw();
+}
+function layout(){
+  var c=S.cond,w=dims.w,h=dims.h,t=[];
+  if(S.settings.task==='1d'){
+    t.push({cx:w/2-c.D/2,cy:h/2});t.push({cx:w/2+c.D/2,cy:h/2});
+  }else{
+    for(var i=0;i<N2D;i++){var a=2*Math.PI*i/N2D-Math.PI/2;t.push({cx:w/2+Math.cos(a)*c.D/2,cy:h/2+Math.sin(a)*c.D/2})}
+  }
+  S.targets=t;
+}
+function nextIdx(i){return S.settings.task==='1d'?1-i:(i+(N2D+1)/2)%N2D}
+function isHit(t,x,y){
+  var W=S.cond.W;
+  if(S.settings.task==='1d')return Math.abs(x-t.cx)<=W/2;
+  return Math.hypot(x-t.cx,y-t.cy)<=W/2;
+}
+function draw(){
+  if(!S||!S.targets)return;
+  var w=dims.w,h=dims.h,W=S.cond.W,idle=cssVar('--idle'),acc=cssVar('--accent');
+  ctx.clearRect(0,0,w,h);ctx.fillStyle=cssVar('--stage');ctx.fillRect(0,0,w,h);
+  S.targets.forEach(function(t,i){
+    var active=(i===S.cur&&(S.phase==='await'||S.phase==='run'));
+    ctx.fillStyle=active?acc:idle;
+    if(S.settings.task==='1d'){ctx.fillRect(t.cx-W/2,0,W,h)}
+    else{ctx.beginPath();ctx.arc(t.cx,t.cy,W/2,0,Math.PI*2);ctx.fill()}
+  });
+  if(S.last){
+    ctx.fillStyle=S.last.hit?cssVar('--hit'):cssVar('--miss');
+    ctx.strokeStyle=cssVar('--surface');ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(S.last.x,S.last.y,4,0,Math.PI*2);ctx.fill();ctx.stroke();
+  }
+}
+function hud(){
+  var c=S.cond,N=S.settings.trials;
+  $('hCond').textContent=(S.ci+1)+' / '+S.conds.length;
+  $('hDW').textContent=c.D+' × '+c.W;
+  $('hID').textContent=c.ID.toFixed(2)+' bits';
+  $('hTrial').textContent=Math.min(S.k,N)+' / '+N;
+  $('hErr').textContent=S.errs;
+  var done=S.ci*N+Math.min(S.k,N);$('hBar').style.width=(100*done/(S.conds.length*N))+'%';
+}
+function showOverlay(){
+  var c=S.cond,o=$('overlay');
+  o.hidden=false;
+  o.innerHTML='<div class="box"><div class="big">Condition '+(S.ci+1)+' of '+S.conds.length+'</div>'+
+    '<div class="spec">D = '+c.D+' px · W = '+c.W+' px · ID = '+c.ID.toFixed(2)+' bits</div>'+
+    '<p>Click the highlighted target to begin, then tap between targets quickly and accurately.</p>'+
+    '<button class="btn" id="goBtn" type="button">Start condition</button></div>';
+  $('goBtn').onclick=beginCondition;
+  $('goBtn').focus({preventScroll:true});
+  $('runMsg').textContent='Ready for condition '+(S.ci+1)+'.';
+  S.phase='between';hud();layout();S.cur=0;S.last=null;draw();
+}
+function beginCondition(){
+  $('overlay').hidden=true;S.phase='await';S.cur=0;S.k=0;S.errs=0;S.last=null;
+  $('runMsg').textContent='Click the highlighted target to begin. This first click is not scored.';hud();draw();
+}
+function startRun(sampleRows){
+  var s=readForm();saveSettings(s);
+  var c=buildConds(s).list;if(!c.length)return;
+  if(s.random)shuffle(c);
+  S={settings:s,conds:c,ci:0,cond:c[0],k:0,errs:0,rows:[],phase:'between',cur:0,targets:null,last:null,prevClick:null,prevT:0,pointer:'mouse'};
+  $('setup').hidden=true;$('results').hidden=true;$('run').hidden=false;
+  fitCanvas();showOverlay();
+  $('run').scrollIntoView({block:'start'});
+}
+function abortRun(){S=null;$('run').hidden=true;$('setup').hidden=false;updateSummary()}
+
+cv.addEventListener('pointerdown',function(e){
+  if(!S||(S.phase!=='await'&&S.phase!=='run'))return;
+  e.preventDefault();
+  var r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top,t=e.timeStamp;
+  S.pointer=e.pointerType||'mouse';
+  var tg=S.targets[S.cur],hit=isHit(tg,x,y);
+  if(S.phase==='await'){
+    if(!hit){S.last={x:x,y:y,hit:false};draw();return}
+    S.prevClick={x:x,y:y,t:t};S.prevT=S.cur;S.cur=nextIdx(S.cur);S.phase='run';S.k=0;S.last={x:x,y:y,hit:true};
+    $('runMsg').textContent='Go. Alternate between targets.';hud();draw();return;
+  }
+  var pt=S.targets[S.prevT],vx=tg.cx-pt.cx,vy=tg.cy-pt.cy,len=Math.hypot(vx,vy)||1,ux=vx/len,uy=vy/len;
+  var dx=(x-tg.cx)*ux+(y-tg.cy)*uy,act=(x-S.prevClick.x)*ux+(y-S.prevClick.y)*uy;
+  S.rows.push({participant:S.settings.participant,task:S.settings.task,pointer:S.pointer,order:S.ci+1,D:S.cond.D,W:S.cond.W,
+    k:S.k+1,idx:S.cur,mt:t-S.prevClick.t,hit:hit,x:x,y:y,tx:tg.cx,ty:tg.cy,dx:dx,act:act});
+  if(!hit)S.errs++;
+  S.prevClick={x:x,y:y,t:t};S.prevT=S.cur;S.k++;S.last={x:x,y:y,hit:hit};
+  if(S.k>=S.settings.trials){
+    hud();S.ci++;
+    if(S.ci>=S.conds.length){finishRun();return}
+    S.cond=S.conds[S.ci];S.k=0;S.errs=0;showOverlay();return;
+  }
+  S.cur=nextIdx(S.cur);hud();draw();
+});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&S&&!$('run').hidden)abortRun()});
+$('abortBtn').addEventListener('click',abortRun);
+function finishRun(){
+  var rows=S.rows,f=S.settings.formula,task=S.settings.task;
+  S=null;$('run').hidden=true;showResults(rows,f,task,false);
+}
+
+/* ---------- analysis ---------- */
+function mean(a){return a.length?a.reduce(function(s,v){return s+v},0)/a.length:0}
+function sdev(a){if(a.length<2)return 0;var m=mean(a);return Math.sqrt(a.reduce(function(s,v){return s+(v-m)*(v-m)},0)/(a.length-1))}
+function analyze(rows,f){
+  var map={},keys=[];
+  rows.forEach(function(r){var k=r.D+'x'+r.W;if(!map[k]){map[k]=[];keys.push(k)}map[k].push(r)});
+  var conds=keys.map(function(k){
+    var rs=map[k],D=rs[0].D,W=rs[0].W,n=rs.length,mts=rs.map(function(r){return r.mt});
+    var errs=rs.filter(function(r){return !r.hit}).length,sdx=sdev(rs.map(function(r){return r.dx})),
+        De=mean(rs.map(function(r){return r.act})),m=mean(mts),IDe=null,TP=null;
+    if(sdx>0&&De>0){IDe=Math.log2(De/(4.133*sdx)+1);TP=IDe/(m/1000)}
+    return {D:D,W:W,n:n,mt:m,sd:sdev(mts),errs:errs,err:errs/n,ID:idOf(D,W,f),IDe:IDe,TP:TP};
+  });
+  conds.sort(function(a,b){return a.ID-b.ID||a.D-b.D});
+  var reg=null;
+  if(conds.length>=2){
+    var xs=conds.map(function(c){return c.ID}),ys=conds.map(function(c){return c.mt}),mx=mean(xs),my=mean(ys),sxx=0,sxy=0,syy=0;
+    for(var i=0;i<xs.length;i++){sxx+=(xs[i]-mx)*(xs[i]-mx);sxy+=(xs[i]-mx)*(ys[i]-my);syy+=(ys[i]-my)*(ys[i]-my)}
+    if(sxx>1e-9){var b=sxy/sxx,a=my-b*mx,ssr=0;for(var j=0;j<xs.length;j++){var e=ys[j]-(a+b*xs[j]);ssr+=e*e}
+      reg={a:a,b:b,r2:syy>0?1-ssr/syy:1}}
+  }
+  var tps=conds.filter(function(c){return c.TP!=null}).map(function(c){return c.TP});
+  return {conds:conds,reg:reg,mt:mean(rows.map(function(r){return r.mt})),
+    err:rows.filter(function(r){return !r.hit}).length/Math.max(1,rows.length),tp:tps.length?mean(tps):null,n:rows.length};
+}
+
+/* ---------- results ---------- */
+var LAST=null;
+function fx(v,d){return v==null||!isFinite(v)?'–':v.toFixed(d)}
+function showResults(rows,f,task,sample){
+  var A=analyze(rows,f);LAST={rows:rows,A:A,f:f,task:task,sample:sample};
+  $('sampleBanner').hidden=!sample;
+  $('setup').hidden=true;$('results').hidden=false;
+  var reg=A.reg;
+  $('tiles').innerHTML=
+    tile('Mean movement time',fx(A.mt,0),'ms',A.n+' scored trials')+
+    tile('Error rate',fx(A.err*100,1),'%','Taps outside the target')+
+    tile('Throughput',fx(A.tp,2),'bits/s','Mean of effective throughput per condition')+
+    tile('Linear fit',reg?fx(reg.r2,3):'–','R²',reg?'MT = '+fx(reg.a,0)+' + '+fx(reg.b,0)+' · ID':'Needs two or more difficulty levels');
+  $('fitNote').textContent=reg?
+    'Intercept a = '+fx(reg.a,0)+' ms, slope b = '+fx(reg.b,0)+' ms per bit (about '+fx(1000/reg.b,1)+' bits/s). Each point is the mean of one D × W condition; hover or tap a point for its values.':
+    'Add at least two conditions with different difficulty to fit a line.';
+  renderChart();renderTable();
+  setCsv('trials');$('copyMsg').textContent='';
+  window.scrollTo({top:0});
+}
+function tile(l,v,u,s){return '<div class="tile"><span class="lab">'+l+'</span><div class="v">'+v+' <span class="u">'+u+'</span></div><div class="s">'+s+'</div></div>'}
+function niceStep(max,target){
+  var steps=[10,20,25,50,100,200,250,500,1000,2000],i;
+  for(i=0;i<steps.length;i++)if(max/steps[i]<=target)return steps[i];
+  return steps[steps.length-1];
+}
+function renderChart(){
+  if(!LAST)return;
+  var A=LAST.A,el=$('chart'),W=Math.max(260,el.clientWidth||600),H=Math.round(Math.min(360,Math.max(240,W*.5)));
+  var m={l:52,r:16,t:14,b:44},pw=W-m.l-m.r,ph=H-m.t-m.b;
+  var maxID=Math.max.apply(null,A.conds.map(function(c){return c.ID})),xMax=Math.max(2,Math.ceil(maxID+0.3));
+  var maxMT=Math.max.apply(null,A.conds.map(function(c){return c.mt}));
+  if(A.reg)maxMT=Math.max(maxMT,A.reg.a+A.reg.b*xMax*0.98);
+  var ys=niceStep(maxMT*1.08,6),yMax=Math.ceil(maxMT*1.08/ys)*ys;
+  var X=function(v){return m.l+v/xMax*pw},Y=function(v){return m.t+ph-v/yMax*ph};
+  var s='<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Scatter of mean movement time against index of difficulty">';
+  for(var v=0;v<=yMax+1e-6;v+=ys){s+='<line class="gl" x1="'+m.l+'" x2="'+(W-m.r)+'" y1="'+Y(v)+'" y2="'+Y(v)+'"/><text x="'+(m.l-8)+'" y="'+(Y(v)+4)+'" text-anchor="end">'+v+'</text>'}
+  var xs=xMax>8?2:1;
+  for(var u=0;u<=xMax;u+=xs){s+='<line class="gl" x1="'+X(u)+'" x2="'+X(u)+'" y1="'+m.t+'" y2="'+(m.t+ph)+'" style="opacity:.5"/><text x="'+X(u)+'" y="'+(m.t+ph+16)+'" text-anchor="middle">'+u+'</text>'}
+  s+='<line class="ax" x1="'+m.l+'" x2="'+(W-m.r)+'" y1="'+(m.t+ph)+'" y2="'+(m.t+ph)+'"/><line class="ax" x1="'+m.l+'" x2="'+m.l+'" y1="'+m.t+'" y2="'+(m.t+ph)+'"/>';
+  s+='<text x="'+(m.l+pw/2)+'" y="'+(H-6)+'" text-anchor="middle" class="lbl">Index of difficulty (bits)</text>';
+  s+='<text transform="translate(13 '+(m.t+ph/2)+') rotate(-90)" text-anchor="middle" class="lbl">Movement time (ms)</text>';
+  if(A.reg){
+    var x0=Math.max(0,A.conds[0].ID-0.3),x1=Math.min(xMax,maxID+0.3),r=A.reg;
+    s+='<line class="fit" x1="'+X(x0)+'" y1="'+Y(r.a+r.b*x0)+'" x2="'+X(x1)+'" y2="'+Y(r.a+r.b*x1)+'"/>';
+  }
+  A.conds.forEach(function(c){
+    s+='<circle class="pt" cx="'+X(c.ID)+'" cy="'+Y(c.mt)+'" r="6"><title>D '+c.D+' px, W '+c.W+' px: ID '+c.ID.toFixed(2)+' bits, MT '+c.mt.toFixed(0)+' ms, '+(c.err*100).toFixed(0)+'% errors</title></circle>';
+  });
+  el.innerHTML=s+'</svg>';
+}
+function renderTable(){
+  var A=LAST.A,h='<thead><tr><th>D (px)</th><th>W (px)</th><th>ID</th><th>n</th><th>MT (ms)</th><th>SD</th><th>Errors</th><th>IDe</th><th>TP (bits/s)</th></tr></thead><tbody>';
+  A.conds.forEach(function(c){
+    h+='<tr class="'+(c.err>0.1?'bad':'')+'"><td>'+c.D+'</td><td>'+c.W+'</td><td>'+fx(c.ID,2)+'</td><td>'+c.n+'</td><td>'+fx(c.mt,0)+'</td><td>'+fx(c.sd,0)+'</td><td class="err">'+fx(c.err*100,1)+'%</td><td>'+fx(c.IDe,2)+'</td><td>'+fx(c.TP,2)+'</td></tr>';
+  });
+  $('table').innerHTML=h+'</tbody>';
+}
+function r3(v){return v==null||!isFinite(v)?'':(Math.round(v*1000)/1000)}
+function csvFor(kind){
+  var L=LAST,lines=[];
+  if(kind==='trials'){
+    lines.push('participant,task,pointer,condition_order,D_px,W_px,ID_bits,trial,target_index,movement_time_ms,hit,click_x,click_y,target_x,target_y,dx_along_axis,distance_moved');
+    L.rows.forEach(function(r){lines.push([r.participant,r.task,r.pointer,r.order,r.D,r.W,r3(idOf(r.D,r.W,L.f)),r.k,r.idx,r3(r.mt),r.hit?1:0,r3(r.x),r3(r.y),r3(r.tx),r3(r.ty),r3(r.dx),r3(r.act)].join(','))});
+  }else{
+    lines.push('D_px,W_px,ID_bits,n,mean_MT_ms,sd_MT_ms,error_rate,IDe_bits,throughput_bits_per_s');
+    L.A.conds.forEach(function(c){lines.push([c.D,c.W,r3(c.ID),c.n,r3(c.mt),r3(c.sd),r3(c.err),r3(c.IDe),r3(c.TP)].join(','))});
+    if(L.A.reg)lines.push('# fit: MT = '+r3(L.A.reg.a)+' + '+r3(L.A.reg.b)+' * ID, R2 = '+r3(L.A.reg.r2));
+  }
+  return lines.join('\n');
+}
+function setCsv(kind){$('csv').value=csvFor(kind)}
+function copyText(kind){
+  setCsv(kind);var ta=$('csv'),txt=ta.value,msg=$('copyMsg');
+  function fallback(){ta.focus();ta.select();var ok=false;try{ok=document.execCommand('copy')}catch(e){}msg.textContent=ok?'Copied.':'Select the text in the box and copy it.'}
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){msg.textContent='Copied.'},fallback)}
+    else fallback();
+  }catch(e){fallback()}
+}
+$('copyTrials').addEventListener('click',function(){copyText('trials')});
+$('copySummary').addEventListener('click',function(){copyText('summary')});
+
+/* ---------- sample data ---------- */
+function gauss(){var u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function sampleRows(s){
+  var c=buildConds(Object.assign({},s,{task:'1d'})).list,rows=[],order=0;
+  c.forEach(function(cond){
+    order++;
+    for(var k=1;k<=s.trials;k++){
+      var idx=k%2,dx=gauss()*cond.W*0.245,mt=Math.max(120,(180+140*idOf(cond.D,cond.W,'shannon'))*(1+gauss()*0.12)),
+          act=cond.D+gauss()*cond.W*0.15,sign=idx?1:-1;
+      rows.push({participant:'Sample',task:'1d',pointer:'mouse',order:order,D:cond.D,W:cond.W,k:k,idx:idx,mt:mt,hit:Math.abs(dx)<=cond.W/2,
+        x:sign*cond.D/2+dx*sign,y:0,tx:sign*cond.D/2,ty:0,dx:dx,act:act});
+    }
+  });
+  return rows;
+}
+
+/* ---------- wiring ---------- */
+['participant','task','dists','widths','trials','formula','random'].forEach(function(id){
+  $(id).addEventListener('input',updateSummary);$(id).addEventListener('change',updateSummary);
+});
+$('startBtn').addEventListener('click',function(){startRun()});
+$('sampleBtn').addEventListener('click',function(){
+  var s=readForm();if(!buildConds(s).list.length){updateSummary();return}
+  showResults(sampleRows(s),s.formula,'1d',true);
+});
+$('againBtn').addEventListener('click',function(){LAST=null;$('results').hidden=true;$('setup').hidden=false;updateSummary();window.scrollTo({top:0})});
+var rt;
+window.addEventListener('resize',function(){
+  clearTimeout(rt);rt=setTimeout(function(){
+    if(S&&!$('run').hidden)fitCanvas();
+    else if(LAST&&!$('results').hidden)renderChart();
+    else updateSummary();
+  },120);
+});
+if(window.matchMedia){try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){if(S)draw()})}catch(e){}}
+
+writeForm(loadSettings());
+updateSummary();
+})();
+</script>
+
+</body></html>

@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bubble Cursor — Interactive explainer</title>
+<style>
+  :root {
+    --ink: #172b43;
+    --muted: #61758b;
+    --line: #e0e8f0;
+    --paper: #ffffff;
+    --wash: #f5f8fc;
+    --blue: #2797c7;
+    --blue-dark: #1978a5;
+    --blue-pale: #e8f6fc;
+    --orange: #ef8555;
+    --orange-dark: #cc6339;
+    --orange-pale: #fff0e7;
+    --green: #2b9c82;
+    --shadow: 0 18px 48px rgba(25, 55, 83, .08);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; color: var(--ink); background:
+      radial-gradient(ellipse at 10% 0%, rgba(39,151,199,.08), transparent 34rem),
+      linear-gradient(180deg, #f8fbfd, #f3f7fb 70%);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    line-height: 1.45;
+  }
+  .page { max-width: 1240px; margin: 0 auto; padding: 34px 28px 28px; }
+  .eyebrow { display: flex; align-items: center; gap: 9px; color: var(--blue-dark); font-size: 11px; font-weight: 800; letter-spacing: .15em; text-transform: uppercase; }
+  .mark { width: 19px; height: 19px; position: relative; border: 2px solid var(--blue); border-radius: 50%; display:inline-block; }
+  .mark:before { content:""; position:absolute; width:6px;height:6px;border-radius:50%;background:var(--orange);right:-2px;bottom:-1px;border:2px solid #f8fbfd; }
+  h1 { font-size: clamp(32px, 4vw, 48px); letter-spacing: -.045em; line-height: 1.05; margin: 14px 0 12px; font-weight: 780; }
+  .dek { margin: 0; color: var(--muted); font-size: 16px; max-width: 700px; }
+  .topline { display:flex; justify-content:space-between; align-items:flex-start; gap: 24px; margin-bottom: 25px; }
+  .chip { white-space:nowrap; margin-top:7px; border:1px solid #d8e8f0; background:rgba(255,255,255,.75); border-radius:999px; padding:8px 12px; color:#42657c; font-size:11px; font-weight:800; letter-spacing:.08em; }
+  .layout { display:grid; grid-template-columns:minmax(0, 1.8fr) minmax(285px, .86fr); gap:20px; align-items:stretch; }
+  .panel { background:rgba(255,255,255,.94); border:1px solid rgba(216,227,237,.95); border-radius:20px; box-shadow:var(--shadow); overflow:hidden; min-width:0; }
+  .stage-head { padding:18px 20px 14px; display:flex; justify-content:space-between; align-items:center; gap:14px; border-bottom:1px solid #edf2f6; }
+  .stage-title { font-weight:750; font-size:14px; letter-spacing:-.01em; }
+  .stage-tip { font-size:11px; color:var(--muted); margin-top:2px; }
+  .live { display:flex; align-items:center; gap:7px; color:#387d73; font-size:11px; font-weight:750; white-space:nowrap; }
+  .live:before { content:""; display:block; width:7px; height:7px; background:#3aab91; border-radius:50%; box-shadow:0 0 0 4px rgba(58,171,145,.12); }
+  .canvas-wrap { padding: 8px 10px 0; }
+  canvas { display:block; width:100%; height:auto; aspect-ratio:760 / 470; border-radius:14px; cursor:none; touch-action:manipulation; outline:none; }
+  .stage-foot { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:12px 20px 17px; }
+  .legend { display:flex; flex-wrap:wrap; align-items:center; gap:14px; color:#64798c; font-size:11px; }
+  .legend-item { display:inline-flex; align-items:center; gap:6px; }
+  .legend-dot { width:9px;height:9px;border-radius:3px; display:inline-block; border:1px solid #c8d7e3; background:white; }
+  .legend-dot.bubble { border-radius:50%; background:rgba(39,151,199,.18); border:1.5px solid var(--blue); }
+  .legend-dot.capture { background:var(--orange); border-color:var(--orange-dark); }
+  .legend-dot.pointer { width:9px;height:9px;border:0;background:var(--ink);border-radius:50%; }
+  .controls { display:flex; flex-wrap:wrap; align-items:center; gap:7px; }
+  .toggle-group { display:flex; gap:3px; padding:3px; border-radius:10px; background:#eef3f8; border:1px solid #e3ebf2; }
+  button { font:inherit; cursor:pointer; }
+  .toggle { border:0; border-radius:7px; background:transparent; color:#64788b; padding:7px 10px; font-size:11px; font-weight:750; transition:background .15s,color .15s,box-shadow .15s; }
+  .toggle[aria-pressed="true"] { color:#1d5e7c; background:white; box-shadow:0 1px 4px rgba(21,52,78,.12); }
+  .toggle:focus-visible,.action:focus-visible { outline:3px solid rgba(39,151,199,.35); outline-offset:2px; }
+  .action { border:1px solid #dce6ee; background:white; color:#536b80; border-radius:9px; padding:8px 11px; font-size:11px; font-weight:750; }
+  .action:hover { background:#f5f9fc; }
+  .side { display:flex; flex-direction:column; gap:14px; }
+  .side .panel { padding:18px 18px 17px; }
+  .section-label { color:#8293a4; text-transform:uppercase; font-size:10px; letter-spacing:.14em; font-weight:850; margin-bottom:10px; }
+  .focus-row { display:flex; align-items:center; gap:12px; }
+  .focus-icon { display:flex; align-items:center; justify-content:center; flex:none; width:42px;height:42px;border-radius:13px; background:var(--orange-pale); color:var(--orange-dark); font-weight:850; font-size:15px; }
+  .focus-name { font-size:20px; line-height:1.1; letter-spacing:-.03em; font-weight:800; }
+  .focus-sub { color:var(--muted); font-size:11px; margin-top:5px; }
+  .state-line { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:15px; padding-top:14px; border-top:1px solid #edf2f6; }
+  .state-title { font-size:12px; font-weight:750; }
+  .state-badge { background:var(--blue-pale); color:var(--blue-dark); border:1px solid #d4eef8; border-radius:999px; padding:5px 8px; font-size:10px; white-space:nowrap; font-weight:800; }
+  .state-badge.morph { background:var(--orange-pale); color:var(--orange-dark); border-color:#ffdfce; }
+  .small-copy { font-size:12px; color:var(--muted); margin:9px 0 0; }
+  .metrics { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+  .metric { background:#f6f9fc; border:1px solid #edf2f6; border-radius:12px; padding:11px 12px 10px; min-width:0; }
+  .metric .name { color:#72869a; font-size:10px; line-height:1.25; }
+  .metric .value { color:#203c56; font-weight:800; letter-spacing:-.025em; font-size:20px; margin-top:4px; font-variant-numeric:tabular-nums; }
+  .formula { background:#f2f8fb; border:1px solid #dcecf3; border-radius:12px; padding:13px 14px; margin-top:13px; }
+  .formula-main { font-size:21px; font-weight:800; letter-spacing:-.025em; text-align:center; color:#1f7196; }
+  .formula small { display:block; color:#6b8192; text-align:center; margin-top:5px; font-size:10px; }
+  .steps { display:flex; flex-direction:column; gap:13px; }
+  .step { display:grid; grid-template-columns:27px minmax(0,1fr); gap:10px; align-items:start; }
+  .step-num { display:flex; align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;background:#edf5f9;color:#2b7fa4;font-size:10px;font-weight:850; }
+  .step-title { font-size:12px; font-weight:800; margin:0 0 3px; }
+  .step-copy { font-size:11px; line-height:1.5; color:var(--muted); margin:0; }
+  .source { border-top:1px solid #e0e8f0; margin-top:24px; padding-top:17px; display:flex; justify-content:space-between; gap:22px; align-items:flex-start; color:#7b8c9e; font-size:10px; }
+  .source strong { color:#586f84; }
+  a { color:#287fa6; text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  .source-links { white-space:nowrap; }
+  .picked-note { color:#77899b; font-size:10px; margin-top:10px; min-height:14px; }
+  @media (max-width: 900px) {
+    .page { padding:25px 17px; }
+    .layout { grid-template-columns:1fr; }
+    .side { display:grid; grid-template-columns:1fr 1fr; align-items:start; }
+    .side .mechanics { grid-column:1 / -1; }
+  }
+  @media (max-width: 560px) {
+    .page { padding:22px 12px; }
+    .topline { display:block; }
+    .chip { display:inline-block; margin-top:15px; }
+    .stage-head { padding:15px 14px 12px; }
+    .stage-foot { padding:10px 13px 14px; }
+    .side { display:flex; }
+    .controls { width:100%; }
+    .stage-foot { align-items:flex-start; }
+    .source { display:block; }
+    .source-links { margin-top:8px; }
+  }
+</style>
+</head>
+<body>
+<main class="page">
+  <header class="topline">
+    <div>
+      <div class="eyebrow"><span class="mark" aria-hidden="true"></span> INTERACTION DESIGN · CHI 2005</div>
+      <h1>Meet the Bubble Cursor.</h1>
+      <p class="dek">A cursor that grows to make targets easier to acquire — while adapting to nearby targets so that selection stays unambiguous.</p>
+    </div>
+    <div class="chip">INTERACTIVE EXPLAINER</div>
+  </header>
+
+  <div class="layout">
+    <section class="panel" aria-label="Interactive Bubble Cursor playground">
+      <div class="stage-head">
+        <div>
+          <div class="stage-title">Move around. Watch the bubble adapt.</div>
+          <div class="stage-tip">Move your pointer inside the stage, then click to select.</div>
+        </div>
+        <div class="live">LIVE MODEL</div>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="stage" width="760" height="470" tabindex="0" role="img" aria-label="Interactive stage showing target buttons and a dynamically resizing cursor bubble."></canvas>
+      </div>
+      <div class="stage-foot">
+        <div class="legend" aria-label="Diagram legend">
+          <span class="legend-item"><i class="legend-dot bubble"></i> Activation area</span>
+          <span class="legend-item"><i class="legend-dot capture"></i> Captured target</span>
+          <span class="legend-item"><i class="legend-dot pointer"></i> Pointer hotspot</span>
+        </div>
+        <div class="controls">
+          <div class="toggle-group" aria-label="Cursor mode">
+            <button class="toggle" id="bubbleMode" aria-pressed="true">Bubble cursor</button>
+            <button class="toggle" id="pointMode" aria-pressed="false">Point cursor</button>
+          </div>
+          <div class="toggle-group" aria-label="Target layout">
+            <button class="toggle" id="balancedLayout" aria-pressed="true">Balanced</button>
+            <button class="toggle" id="denseLayout" aria-pressed="false">Dense</button>
+          </div>
+          <button class="action" id="resetBtn">Reset</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="side" aria-label="Live explanation">
+      <section class="panel">
+        <div class="section-label">Live capture</div>
+        <div class="focus-row">
+          <div class="focus-icon" id="focusIcon">↗</div>
+          <div>
+            <div class="focus-name" id="focusName">Share</div>
+            <div class="focus-sub" id="focusSub">Closest target to the hotspot</div>
+          </div>
+        </div>
+        <div class="state-line">
+          <div class="state-title">Cursor shape</div>
+          <span class="state-badge" id="stateBadge">Fully contained</span>
+        </div>
+        <p class="small-copy" id="stateCopy">The bubble fits around the captured target without reaching its neighbor.</p>
+        <div class="picked-note" id="pickedNote">No target selected yet — click the stage to try it.</div>
+      </section>
+
+      <section class="panel">
+        <div class="section-label">Live geometry</div>
+        <div class="metrics">
+          <div class="metric"><div class="name">Bubble radius</div><div class="value" id="radiusValue">—</div></div>
+          <div class="metric"><div class="name">2nd target distance</div><div class="value" id="secondValue">—</div></div>
+          <div class="metric"><div class="name">Containment distance</div><div class="value" id="containValue">—</div></div>
+          <div class="metric"><div class="name">Successful picks</div><div class="value" id="pickValue">0</div></div>
+        </div>
+        <div class="formula">
+          <div class="formula-main">r = min(ConD₁, IntD₂)</div>
+          <small>Contain the closest target, but avoid the runner-up.</small>
+        </div>
+      </section>
+
+      <section class="panel mechanics">
+        <div class="section-label">How it works</div>
+        <div class="steps">
+          <div class="step"><div class="step-num">01</div><div><p class="step-title">Find the closest target</p><p class="step-copy">Compare the pointer’s distance to each target boundary, not just its center.</p></div></div>
+          <div class="step"><div class="step-num">02</div><div><p class="step-title">Resize the activation area</p><p class="step-copy">The circle grows until it can contain the target — or until it would touch the second-closest target.</p></div></div>
+          <div class="step"><div class="step-num">03</div><div><p class="step-title">Morph when space is tight</p><p class="step-copy">If a circle cannot fully surround the target safely, a local envelope reinforces which target is captured.</p></div></div>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <footer class="source">
+    <div><strong>Based on the original technique</strong> by Tovi Grossman and Ravin Balakrishnan, “The Bubble Cursor: Enhancing Target Acquisition by Dynamic Resizing of the Cursor’s Activation Area,” CHI 2005. This is an independent teaching demo, not the original software.</div>
+    <div class="source-links"><a href="https://www.tovigrossman.com/BubbleCursor/" target="_blank" rel="noopener noreferrer">Original project ↗</a> &nbsp;·&nbsp; <a href="https://doi.org/10.1145/1054972.1055012" target="_blank" rel="noopener noreferrer">CHI paper ↗</a></div>
+  </footer>
+</main>
+<script>
+(() => {
+  const W = 760, H = 470;
+  const canvas = document.getElementById('stage');
+  const ctx = canvas.getContext('2d');
+  const $ = id => document.getElementById(id);
+  const baseTargets = [
+    { id:'inbox', label:'Inbox', x:96, y:88, w:84, h:44 },
+    { id:'search', label:'Search', x:264, y:82, w:92, h:42 },
+    { id:'docs', label:'Docs', x:439, y:116, w:75, h:42 },
+    { id:'save', label:'Save', x:605, y:94, w:70, h:40 },
+    { id:'design', label:'Design', x:166, y:222, w:98, h:46 },
+    { id:'share', label:'Share', x:346, y:232, w:84, h:44 },
+    { id:'export', label:'Export', x:551, y:247, w:91, h:43 },
+    { id:'settings', label:'Settings', x:254, y:355, w:102, h:43 },
+    { id:'help', label:'Help', x:472, y:361, w:73, h:40 },
+  ];
+  const denseTargets = [
+    { id:'inbox', label:'Inbox', x:92, y:116, w:84, h:44 },
+    { id:'search', label:'Search', x:198, y:120, w:92, h:42 },
+    { id:'docs', label:'Docs', x:311, y:108, w:75, h:42 },
+    { id:'save', label:'Save', x:407, y:122, w:70, h:40 },
+    { id:'design', label:'Design', x:127, y:219, w:98, h:46 },
+    { id:'share', label:'Share', x:247, y:228, w:84, h:44 },
+    { id:'export', label:'Export', x:355, y:230, w:91, h:43 },
+    { id:'settings', label:'Settings', x:190, y:326, w:102, h:43 },
+    { id:'help', label:'Help', x:313, y:329, w:73, h:40 },
+  ];
+  let targets = baseTargets.map(t => ({...t}));
+  let mode = 'bubble';
+  let layout = 'balanced';
+  let pointer = { x: 335, y: 190 };
+  let pointerInside = true;
+  let lastPicked = null;
+  let successfulPicks = 0;
+  let lastMessage = 'No target selected yet — click the stage to try it.';
+  const icons = { inbox:'I', search:'⌕', docs:'D', save:'S', design:'✳', share:'↗', export:'↑', settings:'⚙', help:'?' };
+
+  function nearestPointDistance(t, p) {
+    const dx = Math.max(t.x - p.x, 0, p.x - (t.x + t.w));
+    const dy = Math.max(t.y - p.y, 0, p.y - (t.y + t.h));
+    if (dx > 0 || dy > 0) return Math.hypot(dx, dy);
+    return Math.min(p.x - t.x, t.x + t.w - p.x, p.y - t.y, t.y + t.h - p.y);
+  }
+  function containmentDistance(t, p) {
+    const corners = [
+      [t.x, t.y], [t.x + t.w, t.y],
+      [t.x + t.w, t.y + t.h], [t.x, t.y + t.h]
+    ];
+    return Math.max(...corners.map(([x,y]) => Math.hypot(x-p.x, y-p.y)));
+  }
+  function insideTarget(t,p) { return p.x >= t.x && p.x <= t.x+t.w && p.y >= t.y && p.y <= t.y+t.h; }
+  function geometry() {
+    const sorted = targets.map(t => ({ ...t, intD:nearestPointDistance(t,pointer), conD:containmentDistance(t,pointer), inside:insideTarget(t,pointer) }))
+      .sort((a,b) => a.intD - b.intD);
+    const first = sorted[0], second = sorted[1];
+    const radius = Math.min(first.conD, second.intD);
+    return { first, second, radius, sorted, morph: radius < first.conD - .75 };
+  }
+  function currentCapture(g) {
+    if (!pointerInside) return null;
+    if (mode === 'bubble') return g.first;
+    return targets.find(t => insideTarget(t,pointer)) || null;
+  }
+  function roundedRect(c, x, y, w, h, r) {
+    const rr = Math.min(r, w/2, h/2);
+    c.beginPath(); c.moveTo(x+rr,y); c.arcTo(x+w,y,x+w,y+h,rr); c.arcTo(x+w,y+h,x,y+h,rr); c.arcTo(x,y+h,x,y,rr); c.arcTo(x,y,x+w,y,rr); c.closePath();
+  }
+  function paintBackground() {
+    ctx.clearRect(0,0,W,H);
+    const grad = ctx.createLinearGradient(0,0,W,H);
+    grad.addColorStop(0,'#fbfdff'); grad.addColorStop(1,'#f5f9fc');
+    ctx.fillStyle = grad; ctx.fillRect(0,0,W,H);
+    ctx.save();
+    ctx.strokeStyle = 'rgba(79, 124, 157, .075)'; ctx.lineWidth = 1;
+    for(let x=20;x<W;x+=28){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+    for(let y=18;y<H;y+=28){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+    ctx.restore();
+    ctx.save();
+    ctx.fillStyle = 'rgba(96,131,157,.14)';
+    [[22,22],[W-22,22],[22,H-22],[W-22,H-22]].forEach(([x,y])=>{ctx.beginPath();ctx.arc(x,y,2.2,0,Math.PI*2);ctx.fill();});
+    ctx.restore();
+  }
+  function drawBubble(g, capture) {
+    if (mode !== 'bubble' || !pointerInside || !g.first) return;
+    const r = Math.max(0, g.radius);
+    ctx.save();
+    ctx.beginPath(); ctx.arc(pointer.x,pointer.y,r,0,Math.PI*2);
+    ctx.fillStyle = 'rgba(39,151,199,.115)'; ctx.fill();
+    ctx.strokeStyle = 'rgba(35,143,190,.95)'; ctx.lineWidth = 2.2; ctx.stroke();
+    ctx.setLineDash([4,5]); ctx.strokeStyle = 'rgba(35,143,190,.26)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(pointer.x,pointer.y,Math.max(0,r-5),0,Math.PI*2); ctx.stroke();
+    ctx.setLineDash([]);
+    if (capture && g.morph && mode === 'bubble') {
+      const t = capture;
+      ctx.shadowColor = 'rgba(239,133,85,.14)'; ctx.shadowBlur = 12;
+      roundedRect(ctx,t.x-7,t.y-7,t.w+14,t.h+14,14);
+      ctx.fillStyle='rgba(255,240,231,.78)';ctx.fill();
+      ctx.shadowBlur=0;ctx.strokeStyle='#ef8555';ctx.lineWidth=2;ctx.stroke();
+      // The small opening visually links the cursor area to the target envelope.
+      const tx = Math.max(t.x-7,Math.min(pointer.x,t.x+t.w+7));
+      const ty = Math.max(t.y-7,Math.min(pointer.y,t.y+t.h+7));
+      const dx=tx-pointer.x, dy=ty-pointer.y, d=Math.hypot(dx,dy)||1;
+      const sx=pointer.x + dx/d*Math.min(r,Math.max(0,d-4));
+      const sy=pointer.y + dy/d*Math.min(r,Math.max(0,d-4));
+      ctx.strokeStyle='rgba(239,133,85,.7)';ctx.lineWidth=2.2;ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(tx,ty);ctx.stroke();
+    }
+    ctx.restore();
+  }
+  function drawTargets(g,capture) {
+    targets.forEach(t => {
+      const active = capture && capture.id === t.id;
+      const picked = lastPicked && lastPicked.id === t.id;
+      ctx.save();
+      if(active){ctx.shadowColor='rgba(239,133,85,.20)';ctx.shadowBlur=13;}
+      roundedRect(ctx,t.x,t.y,t.w,t.h,10);
+      ctx.fillStyle = active ? '#fff0e7' : '#ffffff'; ctx.fill();
+      ctx.shadowBlur=0;
+      ctx.strokeStyle=active?'#ef8555':(picked?'#edb08f':'#d6e2ec');
+      ctx.lineWidth=active?1.8:1.2; ctx.stroke();
+      ctx.beginPath(); ctx.arc(t.x+15,t.y+t.h/2,5.2,0,Math.PI*2);
+      ctx.fillStyle=active?'#ef8555':'#8dc6dc';ctx.fill();
+      ctx.font='700 12px Inter, ui-sans-serif, system-ui, sans-serif';
+      ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillStyle=active?'#a84d2a':'#486177';
+      ctx.fillText(t.label,t.x+26,t.y+t.h/2+.3);
+      if(picked){
+        ctx.strokeStyle='rgba(239,133,85,.62)';ctx.lineWidth=1;ctx.setLineDash([2,3]);
+        roundedRect(ctx,t.x-4,t.y-4,t.w+8,t.h+8,12);ctx.stroke();ctx.setLineDash([]);
+      }
+      ctx.restore();
+    });
+  }
+  function drawPointer() {
+    if(!pointerInside) return;
+    ctx.save();
+    ctx.strokeStyle='#16364f';ctx.lineWidth=1.6;
+    ctx.beginPath();ctx.moveTo(pointer.x-8,pointer.y);ctx.lineTo(pointer.x+8,pointer.y);ctx.moveTo(pointer.x,pointer.y-8);ctx.lineTo(pointer.x,pointer.y+8);ctx.stroke();
+    ctx.beginPath();ctx.arc(pointer.x,pointer.y,3.1,0,Math.PI*2);ctx.fillStyle='#16364f';ctx.fill();
+    ctx.beginPath();ctx.arc(pointer.x,pointer.y,1.15,0,Math.PI*2);ctx.fillStyle='#ffffff';ctx.fill();
+    ctx.restore();
+  }
+  function updatePanel(g,capture) {
+    if(!pointerInside) {
+      $('focusName').textContent='Move into stage';$('focusIcon').textContent='↗';$('focusSub').textContent='The cursor is waiting for a pointer';
+      $('stateBadge').textContent='Idle';$('stateBadge').className='state-badge';$('stateCopy').textContent='Move over the stage to see which target is closest to the hotspot.';
+      $('radiusValue').textContent='—';$('secondValue').textContent='—';$('containValue').textContent='—';
+    } else if(!capture) {
+      $('focusName').textContent='No target';$('focusIcon').textContent='·';$('focusSub').textContent='Point cursor needs direct contact';
+      $('stateBadge').textContent='Point mode';$('stateBadge').className='state-badge';$('stateCopy').textContent='Move the pointer directly onto a button. Unlike the bubble cursor, the point cursor has no expanded activation area.';
+      $('radiusValue').textContent='—';$('secondValue').textContent='—';$('containValue').textContent='—';
+    } else {
+      $('focusName').textContent=capture.label;$('focusIcon').textContent=icons[capture.id]||'•';
+      $('focusSub').textContent=mode==='bubble'?'Closest target to the hotspot':'Pointer is directly on this target';
+      if(mode==='bubble') {
+        $('stateBadge').textContent=g.morph?'Target envelope':'Fully contained';$('stateBadge').className='state-badge'+(g.morph?' morph':'');
+        $('stateCopy').textContent=g.morph?'The circle is capped by the neighboring target, so a local envelope marks the captured target.':'The bubble fully surrounds this target and stays clear of the runner-up.';
+        $('radiusValue').textContent=Math.round(g.radius)+' px';$('secondValue').textContent=Math.round(g.second.intD)+' px';$('containValue').textContent=Math.round(g.first.conD)+' px';
+      } else {
+        $('stateBadge').textContent='Single hotspot';$('stateBadge').className='state-badge';
+        $('stateCopy').textContent='Selection happens only when the pointer itself overlaps the target.';
+        $('radiusValue').textContent='1 px';$('secondValue').textContent='—';$('containValue').textContent='—';
+      }
+    }
+    $('pickValue').textContent=String(successfulPicks);
+    $('pickedNote').textContent=lastMessage;
+  }
+  function render() {
+    const g=geometry(); const capture=currentCapture(g);
+    paintBackground(); drawBubble(g,capture); drawTargets(g,capture); drawPointer(); updatePanel(g,capture);
+  }
+  function setPointer(e) {
+    const rect=canvas.getBoundingClientRect();
+    pointer.x=Math.max(0,Math.min(W,(e.clientX-rect.left)*(W/rect.width)));
+    pointer.y=Math.max(0,Math.min(H,(e.clientY-rect.top)*(H/rect.height)));
+  }
+  canvas.addEventListener('pointerenter', e=>{pointerInside=true;setPointer(e);render();});
+  canvas.addEventListener('pointermove', e=>{pointerInside=true;setPointer(e);render();});
+  canvas.addEventListener('pointerleave', ()=>{pointerInside=false;render();});
+  canvas.addEventListener('click', e=>{
+    setPointer(e);pointerInside=true;
+    const g=geometry();
+    const target = mode==='bubble' ? g.first : targets.find(t=>insideTarget(t,pointer));
+    if(target){
+      lastPicked={...target};successfulPicks++;
+      lastMessage='Last pick: '+target.label+' · '+(mode==='bubble'?'captured by the bubble':'direct point hit');
+    } else {
+      lastMessage='No point hit — move directly over a target, or switch to Bubble cursor.';
+    }
+    render();
+  });
+  function setMode(next) {
+    mode=next;$('bubbleMode').setAttribute('aria-pressed',String(mode==='bubble'));$('pointMode').setAttribute('aria-pressed',String(mode==='point'));render();
+  }
+  function setLayout(next) {
+    layout=next;targets=(layout==='balanced'?baseTargets:denseTargets).map(t=>({...t}));
+    $('balancedLayout').setAttribute('aria-pressed',String(layout==='balanced'));$('denseLayout').setAttribute('aria-pressed',String(layout==='dense'));
+    lastPicked=null;lastMessage='Layout changed — move the pointer and watch the radius adapt.';render();
+  }
+  $('bubbleMode').addEventListener('click',()=>setMode('bubble'));
+  $('pointMode').addEventListener('click',()=>setMode('point'));
+  $('balancedLayout').addEventListener('click',()=>setLayout('balanced'));
+  $('denseLayout').addEventListener('click',()=>setLayout('dense'));
+  $('resetBtn').addEventListener('click',()=>{
+    setMode('bubble');setLayout('balanced');pointer={x:335,y:190};pointerInside=true;lastPicked=null;successfulPicks=0;lastMessage='Reset complete — move around the stage and click a target.';render();
+  });
+  function resizeCanvas(){
+    const dpr=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+    canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);render();
+  }
+  window.addEventListener('resize',resizeCanvas);
+  resizeCanvas();
+})();
+</script>
+</body>
+</html>
